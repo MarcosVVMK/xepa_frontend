@@ -1,4 +1,3 @@
-import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
@@ -39,12 +38,10 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
   void _handleScannedCode(String code) {
     if (_isProcessing) return;
-    dev.log('[QrScanner] Código escaneado: $code', name: 'QrScanner');
     setState(() => _isProcessing = true);
     _scannerController.stop();
 
     if (code.contains('sefaz') || code.contains('nfce') || code.contains('fazenda')) {
-      dev.log('[QrScanner] URL reconhecida como NFC-e', name: 'QrScanner');
       _processNfcUrl(code);
     } else {
       showDialog(
@@ -77,7 +74,6 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   }
 
   Future<void> _processNfcUrl(String url) async {
-    dev.log('[QrScanner] Processando URL: $url', name: 'QrScanner');
     setState(() => _isProcessing = true);
     
     showDialog(

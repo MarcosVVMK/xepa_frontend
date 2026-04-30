@@ -365,18 +365,18 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
       await parserService.salvarNfce(invoice);
       
       if (context.mounted) {
-        Navigator.pop(context); // Remove o loading
+        Navigator.pop(context); 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Dados da nota fiscal salvos com sucesso!'),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Retorna para a tela anterior
+        Navigator.pop(context);
       }
-    } catch (e) {
+    } catch (e, stack) {
       if (context.mounted) {
-        Navigator.pop(context); // Remove o loading
+        Navigator.pop(context); 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao salvar: $e'),

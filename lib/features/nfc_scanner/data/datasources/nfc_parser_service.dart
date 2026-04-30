@@ -1,4 +1,3 @@
-import 'dart:developer' as dev;
 import 'package:dio/dio.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
 import '../../domain/entities/nfc_invoice.dart';
@@ -11,13 +10,12 @@ class NfcParserService {
   NfcParserService(this._apiClient);
 
   Future<void> salvarNfce(NfcInvoice invoice) async {
-    dev.log('[$_tag] Salvando NFC-e para o estabelecimento ${invoice.supermarketName}', name: _tag);
-    
     final payload = {
       'supermarketName': invoice.supermarketName,
       'cnpj': invoice.cnpj,
       'accessKey': invoice.accessKey,
       'totalValue': invoice.totalValue,
+      'address': invoice.address?.toJson(),
       'items': invoice.items.map((item) => {
         'name': item.name,
         'quantity': item.quantity,
@@ -32,9 +30,7 @@ class NfcParserService {
         '/nfce/salvar',
         data: payload,
       );
-      dev.log('[$_tag] NFC-e salva com sucesso: status=${response.statusCode}', name: _tag);
     } on DioException catch (e) {
-      dev.log('[$_tag] DioException ao salvar: ${e.message}', name: _tag);
       if (e.response != null && e.response!.data is Map) {
         throw Exception(e.response!.data['error'] ?? 'Erro ao salvar dados da nota');
       }
@@ -44,17 +40,10 @@ class NfcParserService {
 
   Future<NfcInvoice> consultarPorChaveAcesso(String chaveAcesso) async {
     final cleaned = chaveAcesso.replaceAll(RegExp(r'[^0-9]'), '');
-    dev.log('[$_tag] Chave de acesso recebida: ${chaveAcesso.substring(0, 10)}...', name: _tag);
-    dev.log('[$_tag] Chave limpa (${cleaned.length} dígitos): ${cleaned.substring(0, 10)}...', name: _tag);
 
     if (cleaned.length != 44) {
-      dev.log('[$_tag] ERRO: Chave inválida - ${cleaned.length} dígitos (esperados 44)', name: _tag);
       throw Exception('Chave de acesso deve conter 44 dígitos');
     }
-
-    final baseUrl = _apiClient.dio.options.baseUrl;
-    final fullUrl = '$baseUrl/nfce/consulta';
-    dev.log('[$_tag] POST $fullUrl', name: _tag);
 
     try {
       final response = await _apiClient.dio.post(
@@ -62,34 +51,21 @@ class NfcParserService {
         data: {'chave_acesso': cleaned},
       );
 
-      dev.log('[$_tag] Resposta: status=${response.statusCode}', name: _tag);
-      dev.log('[$_tag] Response data type: ${response.data.runtimeType}', name: _tag);
-      dev.log('[$_tag] Response data: ${response.data}', name: _tag);
-
       final data = response.data;
       return _mapResponseToInvoice(data, cleaned);
     } on DioException catch (e) {
-      dev.log('[$_tag] DioException: type=${e.type}', name: _tag);
-      dev.log('[$_tag] DioException: message=${e.message}', name: _tag);
-      dev.log('[$_tag] DioException: requestUrl=${e.requestOptions.uri}', name: _tag);
-      dev.log('[$_tag] DioException: responseStatus=${e.response?.statusCode}', name: _tag);
-      dev.log('[$_tag] DioException: responseData=${e.response?.data}', name: _tag);
-
       if (e.response != null && e.response!.data is Map) {
         final errorMsg = e.response!.data['error'] ?? 'Erro desconhecido';
         throw Exception(errorMsg);
       }
       throw Exception('Erro de conexão com o servidor: ${e.type} - ${e.message}');
     } catch (e) {
-      dev.log('[$_tag] Erro genérico: $e', name: _tag);
       rethrow;
     }
   }
 
   Future<NfcInvoice> parseUrl(String url) async {
-    dev.log('[$_tag] parseUrl chamado com: $url', name: _tag);
     final chaveAcesso = _extractChaveFromUrl(url);
-    dev.log('[$_tag] Chave extraída: $chaveAcesso', name: _tag);
 
     if (chaveAcesso != null) {
       return consultarPorChaveAcesso(chaveAcesso);
@@ -100,15 +76,12 @@ class NfcParserService {
   String? _extractChaveFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
-      dev.log('[$_tag] URI parsed - host: ${uri.host}, params: ${uri.queryParameters}', name: _tag);
 
       final pParam = uri.queryParameters['p'];
       if (pParam != null && pParam.isNotEmpty) {
         final parts = pParam.split('|');
-        dev.log('[$_tag] Param p encontrado, parts[0]: ${parts[0]}', name: _tag);
         final key = parts[0].replaceAll(RegExp(r'[^0-9]'), '');
         if (key.length == 44) return key;
-        dev.log('[$_tag] Chave do param p tem ${key.length} dígitos, esperados 44', name: _tag);
       }
 
       final chaveParam = uri.queryParameters['chNFe'] ?? uri.queryParameters['chave'];
@@ -122,14 +95,12 @@ class NfcParserService {
       if (match != null) return match.group(0);
 
     } catch (e) {
-      dev.log('[$_tag] Erro ao extrair chave: $e', name: _tag);
+      // Ignora e retorna null
     }
     return null;
   }
 
   NfcInvoice _mapResponseToInvoice(Map<String, dynamic> data, String chaveAcesso) {
-    dev.log('[$_tag] Mapeando resposta para NfcInvoice', name: _tag);
-
     final emitente = data['emitente'] as Map<String, dynamic>? ?? {};
     final produtos = data['produtos'] as List<dynamic>? ?? [];
     final totais = data['totais'] as Map<String, dynamic>? ?? {};
@@ -142,16 +113,15 @@ class NfcParserService {
         ?? 'Estabelecimento';
 
     final cnpj = emitente['cnpj'] as String? ?? '';
-
-    dev.log('[$_tag] Emitente: $nomeEstabelecimento (CNPJ: $cnpj)', name: _tag);
-    dev.log('[$_tag] Produtos encontrados: ${produtos.length}', name: _tag);
+    final enderecoStr = emitente['endereco'] as String?;
+    final address = _parseAddress(enderecoStr);
 
     final dataEmissaoStr = infoNota['data_emissao'] as String?;
     DateTime dataEmissao;
     try {
       dataEmissao = dataEmissaoStr != null
           ? (dataEmissaoStr.contains('/') 
-              ? DateTime.parse(dataEmissaoStr.split('/').reversed.join('-')) // Convert DD/MM/YYYY to YYYY-MM-DD
+              ? DateTime.parse(dataEmissaoStr.split('/').reversed.join('-'))
               : DateTime.parse(dataEmissaoStr))
           : DateTime.now();
     } catch (_) {
@@ -188,10 +158,7 @@ class NfcParserService {
 
     if (totalValue == 0.0 && items.isNotEmpty) {
       totalValue = items.fold(0.0, (sum, item) => sum + item.totalPrice);
-      dev.log('[$_tag] Valor total era zero. Calculado pela soma dos itens: R\$ $totalValue', name: _tag);
     }
-
-    dev.log('[$_tag] Total final: R\$ $totalValue, Itens: ${items.length}', name: _tag);
 
     return NfcInvoice(
       supermarketName: nomeEstabelecimento,
@@ -200,6 +167,20 @@ class NfcParserService {
       accessKey: chaveAcesso,
       items: items,
       totalValue: totalValue,
+      address: address,
+    );
+  }
+
+  NfcInvoiceAddress? _parseAddress(String? addressStr) {
+    if (addressStr == null || addressStr.isEmpty) return null;
+    final parts = addressStr.split(',').map((s) => s.trim()).toList();
+    return NfcInvoiceAddress(
+      street: parts.isNotEmpty ? parts[0] : null,
+      number: parts.length > 1 ? parts[1] : null,
+      complement: parts.length > 2 ? (parts[2] == '.' ? null : parts[2]) : null,
+      neighborhood: parts.length > 3 ? parts[3] : null,
+      city: parts.length > 4 ? parts[4] : null,
+      uf: parts.length > 5 ? parts[5] : null,
     );
   }
 
