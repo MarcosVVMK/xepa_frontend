@@ -23,6 +23,8 @@ import '../services/geocoding_service_impl.dart';
 import '../services/zipcode_service.dart';
 import '../services/zipcode_service_impl.dart';
 
+import '../../features/nfc_scanner/data/datasources/nfc_parser_service.dart';
+
 final getIt = GetIt.instance;
 
 class DependencyInjection {
@@ -74,6 +76,9 @@ class DependencyInjection {
     // 5. FEATURES - NFC & SHOPPING LIST
     // ------------------------------------------------------------------
     
+    // DataSources
+    getIt.registerLazySingleton(() => NfcParserService(getIt<ApiClient>()));
+
     // Repositories
     // getIt.registerLazySingleton<INfcRepository>(() => NfcRepositoryImpl(getIt()));
     // getIt.registerLazySingleton<IShoppingRepository>(() => ShoppingRepositoryImpl(getIt()));

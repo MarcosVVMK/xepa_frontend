@@ -5,38 +5,7 @@ class ExploreScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final supermarkets = [
-      _Supermarket(
-        name: 'Bretas - Centro',
-        distance: '1.2 km',
-        address: 'Rua dos Andradas, 1234',
-        color: const Color(0xFFE53935),
-      ),
-      _Supermarket(
-        name: 'Supermercado BH - Savassi',
-        distance: '2.5 km',
-        address: 'Av. Getúlio Vargas, 567',
-        color: const Color(0xFF1E88E5),
-      ),
-      _Supermarket(
-        name: 'EPA - Funcionários',
-        distance: '3.1 km',
-        address: 'Rua Pernambuco, 890',
-        color: const Color(0xFF43A047),
-      ),
-      _Supermarket(
-        name: 'Verdemar - Lourdes',
-        distance: '4.0 km',
-        address: 'Av. do Contorno, 1100',
-        color: const Color(0xFFFFA000),
-      ),
-      _Supermarket(
-        name: 'BH Atacadista - Barreiro',
-        distance: '6.8 km',
-        address: 'Av. Amazonas, 2000',
-        color: const Color(0xFF7B1FA2),
-      ),
-    ];
+    final supermarkets = <_Supermarket>[];
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -46,7 +15,7 @@ class ExploreScreen extends StatelessWidget {
             // Header
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-              decoration: const BoxDecoration(
+              decoration:  const BoxDecoration(
                 color: Color(0xFF2196F3),
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(20),
@@ -89,7 +58,7 @@ class ExploreScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric( horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0F7FF),
                   borderRadius: BorderRadius.circular(14),
@@ -97,7 +66,7 @@ class ExploreScreen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.my_location_rounded,
+                    const Icon( Icons.my_location_rounded,
                         color: Color(0xFF2196F3), size: 20),
                     const SizedBox(width: 10),
                     Text(
@@ -111,76 +80,12 @@ class ExploreScreen extends StatelessWidget {
                 ),
               ),
             ),
-            // Mock Map
-            Container(
-              margin: const EdgeInsets.all(16),
-              height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Map pins
-                  Positioned(
-                    left: 60,
-                    top: 50,
-                    child: _buildMapPin(const Color(0xFFE53935)),
-                  ),
-                  Positioned(
-                    left: 140,
-                    top: 80,
-                    child: _buildMapPin(const Color(0xFF1E88E5)),
-                  ),
-                  Positioned(
-                    right: 100,
-                    top: 120,
-                    child: _buildMapPin(const Color(0xFF43A047)),
-                  ),
-                  Positioned(
-                    right: 50,
-                    bottom: 40,
-                    child: _buildMapPin(const Color(0xFFFFA000)),
-                  ),
-                  // "Map" label
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.map_rounded,
-                              size: 16, color: Color(0xFF2196F3)),
-                          SizedBox(width: 6),
-                          Text(
-                            'Mapa interativo',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF2196F3),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 16),
             // Supermarkets title
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Row(
-                children: [
+                children:  [
                   const Text(
                     'Mercados próximos',
                     style: TextStyle(
@@ -199,12 +104,31 @@ class ExploreScreen extends StatelessWidget {
             ),
             // Supermarkets List
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: supermarkets.length,
-                itemBuilder: (context, index) =>
-                    _buildSupermarketCard(context, supermarkets[index]),
-              ),
+              child: supermarkets.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.store_outlined, size: 80, color: Colors.grey[300]) ,
+                          const SizedBox(height: 16),
+                          Text(
+                            'Nenhum mercado encontrado',
+                            style: TextStyle(fontSize: 18, color: Colors.grey[500], fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Verifique sua localização',
+                            style:TextStyle(fontSize: 14, color: Colors.grey[400]),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: supermarkets.length,
+                      itemBuilder: (context, index) =>
+                          _buildSupermarketCard(context, supermarkets[index]),
+                    ),
             ),
           ],
         ),
@@ -212,34 +136,6 @@ class ExploreScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMapPin(Color color) {
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(color: color, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.3),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color,
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildSupermarketCard(BuildContext context, _Supermarket market) {
     return Container(

@@ -1,5 +1,7 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import '../../data/datasources/nfc_parser_service.dart';
 import 'nfc_invoice_detail_screen.dart';
 
@@ -15,30 +17,9 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   late TabController _tabController;
   final MobileScannerController _scannerController = MobileScannerController();
   final _nfcCodeController = TextEditingController();
+  final NfcParserService _nfcParserService = getIt<NfcParserService>();
 
-  final List<NfcTag> _registeredTags = [
-    NfcTag(
-      id: '1',
-      code: 'NFC-2024-0001',
-      label: 'Geladeira Casa',
-      registeredAt: DateTime(2026, 4, 15),
-      itemCount: 5,
-    ),
-    NfcTag(
-      id: '2',
-      code: 'NFC-2024-0002',
-      label: 'Despensa Cozinha',
-      registeredAt: DateTime(2026, 4, 18),
-      itemCount: 12,
-    ),
-    NfcTag(
-      id: '3',
-      code: 'NFC-2024-0003',
-      label: 'Armário Banheiro',
-      registeredAt: DateTime(2026, 4, 20),
-      itemCount: 3,
-    ),
-  ];
+  final List<NfcTag> _registeredTags = [];
 
   @override
   void initState() {
@@ -58,10 +39,12 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
   void _handleScannedCode(String code) {
     if (_isProcessing) return;
+    dev.log('[QrScanner] Código escaneado: $code', name: 'QrScanner');
     setState(() => _isProcessing = true);
     _scannerController.stop();
 
-    if (code.contains('sefaz.go.gov.br')) {
+    if (code.contains('sefaz') || code.contains('nfce') || code.contains('fazenda')) {
+      dev.log('[QrScanner] URL reconhecida como NFC-e', name: 'QrScanner');
       _processNfcUrl(code);
     } else {
       showDialog(
@@ -69,7 +52,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           title: const Text('QR Code Detectado'),
-          content: Text('O código lido não parece ser uma NFC-e de GO válida.\n\nCódigo: $code\n\nDeseja simular a extração de uma nota de GO para demonstração?'),
+          content: Text('O código lido não parece ser uma NFC-e válida.\n\nCódigo: $code'),
           actions: [
             TextButton(
               onPressed: () {
@@ -77,15 +60,15 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                 setState(() => _isProcessing = false);
                 _scannerController.start();
               },
-              child: const Text('Cancelar'),
+              child: const Text('Voltar'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                _processNfcUrl('https://nfe.sefaz.go.gov.br/nfeweb/sites/nfce/danfeNFCe?p=52260406047231000129650010000000011000000015|2|1|1');
+                _processNfcUrl(code);
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF42A5F5), foregroundColor: Colors.white),
-              child: const Text('Simular Nota GO'),
+              child: const Text('Tentar assim mesmo'),
             ),
           ],
         ),
@@ -94,6 +77,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   }
 
   Future<void> _processNfcUrl(String url) async {
+    dev.log('[QrScanner] Processando URL: $url', name: 'QrScanner');
     setState(() => _isProcessing = true);
     
     showDialog(
@@ -109,12 +93,12 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                 const CircularProgressIndicator(color: Color(0xFF42A5F5)),
                 const SizedBox(height: 16),
                 const Text(
-                  'Acessando SEFAZ GO...',
+                  'Consultando nota fiscal...',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Extraindo dados da nota',
+                  'Extraindo dados via SEFAZ',
                   style: TextStyle(fontSize: 13, color: Colors.grey),
                 ),
               ],
@@ -125,7 +109,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
     );
 
     try {
-      final invoice = await NfcParserService().parseUrl(url);
+      final invoice = await _nfcParserService.parseUrl(url);
       if (mounted) {
         Navigator.pop(context);
         await Navigator.push(
@@ -142,19 +126,16 @@ class _QrScannerScreenState extends State<QrScannerScreen>
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro: ${e.toString()}'),
+            content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: const Color(0xFFEF5350),
           ),
         );
         setState(() => _isProcessing = false);
         _scannerController.start();
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessing = false);
-      }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

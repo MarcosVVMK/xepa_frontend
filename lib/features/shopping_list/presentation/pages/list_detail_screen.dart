@@ -9,26 +9,7 @@ class ListDetailScreen extends StatefulWidget {
 }
 
 class _ListDetailScreenState extends State<ListDetailScreen> {
-  final List<ListItem> _items = [
-    ListItem(
-      name: 'Frutas e Vegetais Frescos',
-      price: 12.90,
-      quantity: 2,
-      image: 'assets/images/products/frutas_vegetais.png',
-    ),
-    ListItem(
-      name: 'Produtos Lácteos',
-      price: 8.50,
-      quantity: 1,
-      image: 'assets/images/products/produtos_lacteos.png',
-    ),
-    ListItem(
-      name: 'Pães e Padaria',
-      price: 5.99,
-      quantity: 3,
-      image: 'assets/images/products/paes_padaria.png',
-    ),
-  ];
+  final List<ListItem> _items = [];
 
   double get _total =>
       _items.fold(0, (sum, item) => sum + (item.price * item.quantity));

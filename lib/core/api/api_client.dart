@@ -8,8 +8,8 @@ class ApiClient {
 
   ApiClient(this.dio, this.tokenStorage) {
     dio.options.baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v1';
-    dio.options.connectTimeout = const Duration(seconds: 10);
-    dio.options.receiveTimeout = const Duration(seconds: 10);
+    dio.options.connectTimeout = const Duration(seconds: 40);
+    dio.options.receiveTimeout = const Duration(seconds: 40);
 
     dio.interceptors.add(
       InterceptorsWrapper(

@@ -9,29 +9,7 @@ class ListsScreen extends StatefulWidget {
 }
 
 class _ListsScreenState extends State<ListsScreen> {
-  final List<ShoppingList> _lists = [
-    ShoppingList(
-      id: '1',
-      name: 'Minha Lista',
-      itemCount: 3,
-      total: 52.27,
-      color: const Color(0xFF42A5F5),
-    ),
-    ShoppingList(
-      id: '2',
-      name: 'Churrasco Sábado',
-      itemCount: 5,
-      total: 134.50,
-      color: const Color(0xFF66BB6A),
-    ),
-    ShoppingList(
-      id: '3',
-      name: 'Limpeza Mensal',
-      itemCount: 8,
-      total: 89.90,
-      color: const Color(0xFFFFA726),
-    ),
-  ];
+  final List<ShoppingList> _lists = [];
 
   void _showCreateListDialog() {
     final controller = TextEditingController();

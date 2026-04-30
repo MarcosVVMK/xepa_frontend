@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:xepa_frontend/core/DI/dependency_injection.dart';
+import '../../data/datasources/nfc_parser_service.dart';
 import '../../domain/entities/nfc_invoice.dart';
 
 class NfcInvoiceDetailScreen extends StatelessWidget {
@@ -322,7 +324,7 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Qtde: ${item.quantity.toStringAsFixed(0)} ${item.unit} x R\$ ${item.unitPrice.toStringAsFixed(2).replaceAll('.', ',')}',
+                            'Qtde: ${item.quantity % 1 == 0 ? item.quantity.toStringAsFixed(0) : item.quantity.toStringAsFixed(3).replaceAll('.', ',')} ${item.unit} x R\$ ${item.unitPrice.toStringAsFixed(2).replaceAll('.', ',')}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -349,6 +351,44 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _salvarNota(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final parserService = getIt<NfcParserService>();
+      await parserService.salvarNfce(invoice);
+      
+      if (context.mounted) {
+        Navigator.pop(context); // Remove o loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dados da nota fiscal salvos com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context); // Retorna para a tela anterior
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Remove o loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao salvar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+
+
   Widget _buildBottomBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -363,7 +403,7 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () => Navigator.pop(context),
+        onPressed: () => _salvarNota(context),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF42A5F5),
           foregroundColor: Colors.white,
@@ -374,7 +414,7 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
           elevation: 0,
         ),
         child: const Text(
-          'Concluído',
+          'Confirmar e Salvar',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
