@@ -84,4 +84,16 @@ class ShoppingListService {
       return false;
     }
   }
+
+  Future<dynamic> updateShoppingList(int id, Map<String, dynamic> updates) async {
+    try {
+      final response = await apiClient.dio.patch('/shopping-lists/$id', data: updates);
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      return null;
+    } on DioException {
+      return null;
+    }
+  }
 }

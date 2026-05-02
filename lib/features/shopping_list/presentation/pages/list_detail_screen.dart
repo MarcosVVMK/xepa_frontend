@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import 'package:xepa_frontend/features/shopping_list/data/datasources/shopping_list_service.dart';
@@ -57,6 +58,60 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     }
   }
 
+  Future<void> _showEditNameDialog() async {
+    final controller = TextEditingController(text: widget.listName);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar nome da lista'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Nome da lista'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                final service = getIt<ShoppingListService>();
+                await service.updateShoppingList(widget.listId, {'name': newName});
+                if (mounted) Navigator.pop(ctx);
+                _loadList();
+              }
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showDeleteListDialog() async {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Apagar lista?'),
+        content: const Text('Tem certeza que deseja apagar esta lista? Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () async {
+              final service = getIt<ShoppingListService>();
+              await service.deleteShoppingList(widget.listId);
+              if (mounted) {
+                Navigator.pop(ctx);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Apagar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddProductSheet() {
     showModalBottomSheet(
       context: context,
@@ -98,13 +153,22 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.listName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: _showEditNameDialog,
+                              child: Text(
+                                widget.listName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+                          ],
                         ),
                         Text(
                           '$_totalItems itens',
@@ -119,12 +183,23 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
-                        'Total',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 13,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            'Total',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.delete_forever_rounded, color: Colors.white, size: 20),
+                            onPressed: _showDeleteListDialog,
+                          ),
+                        ],
                       ),
                       Text(
                         'R\$ ${_total.toStringAsFixed(2).replaceAll('.', ',')}',
@@ -333,20 +408,72 @@ class _AddProductSheet extends StatefulWidget {
 
 class _AddProductSheetState extends State<_AddProductSheet> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   List<dynamic> _searchResults = [];
   bool _isLoading = false;
   bool _isAdding = false;
+  
+  int _page = 0;
+  final int _size = 20;
+  bool _hasMore = true;
+  Timer? _debounce;
 
-  Future<void> _searchProducts(String query) async {
-    if (query.trim().isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    // Initial search or load all
+    _searchProducts('', reset: true);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoading &&
+        _hasMore) {
+      _searchProducts(_searchController.text);
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _searchProducts(query, reset: true);
+    });
+  }
+
+  Future<void> _searchProducts(String query, {bool reset = false}) async {
+    if (reset) {
+      setState(() {
+        _page = 0;
+        _searchResults = [];
+        _hasMore = true;
+      });
+    }
+
+    if (!_hasMore || _isLoading) return;
+
     setState(() => _isLoading = true);
     try {
       final service = getIt<ProductService>();
-      final results = await service.searchProducts(query);
+      final results = await service.searchProducts(query, page: _page, size: _size);
+      
       if (mounted) {
         setState(() {
-          _searchResults = results;
+          _searchResults.addAll(results);
           _isLoading = false;
+          _page++;
+          if (results.length < _size) {
+            _hasMore = false;
+          }
         });
       }
     } catch (e) {
@@ -354,18 +481,6 @@ class _AddProductSheetState extends State<_AddProductSheet> {
     }
   }
 
-  Future<void> _addProduct(int productId) async {
-    setState(() => _isAdding = true);
-    try {
-      final service = getIt<ShoppingListService>();
-      await service.addItemToList(widget.listId, productId, 1.0, '');
-      if (mounted) {
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isAdding = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -380,32 +495,48 @@ class _AddProductSheetState extends State<_AddProductSheet> {
           children: [
             TextField(
               controller: _searchController,
-              onSubmitted: _searchProducts,
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: 'Buscar produto...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                suffixIcon: _searchController.text.isNotEmpty 
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        _onSearchChanged('');
+                      },
+                    )
+                  : null,
               ),
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _searchResults.isEmpty
-                      ? const Center(child: Text('Nenhum produto encontrado'))
-                      : ListView.builder(
-                          itemCount: _searchResults.length,
-                          itemBuilder: (context, index) {
+              child: _searchResults.isEmpty && !_isLoading
+                  ? const Center(child: Text('Nenhum produto encontrado'))
+                  : ListView.builder(
+                      controller: _scrollController,
+                      itemCount: _searchResults.length + (_hasMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == _searchResults.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
                             final p = _searchResults[index];
                             return ListTile(
                               leading: const Icon(Icons.shopping_bag_outlined),
                               title: Text(p['name'] ?? ''),
-                              subtitle: Text(p['brand'] ?? ''),
+                              subtitle: Text('${p['brand'] ?? ''} • ${p['unitMeasure'] ?? ''}'),
                               trailing: _isAdding 
                                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                                 : IconButton(
                                   icon: const Icon(Icons.add_circle, color: Colors.blue),
-                                  onPressed: () => _addProduct(p['id']),
+                                  onPressed: () => _showQuantityDialog(p),
                                 ),
                             );
                           },
@@ -415,5 +546,58 @@ class _AddProductSheetState extends State<_AddProductSheet> {
         ),
       ),
     );
+  }
+
+  Future<void> _showQuantityDialog(dynamic product) async {
+    final controller = TextEditingController(text: '1');
+    final unit = product['unitMeasure'] ?? 'UNIDADE';
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Adicionar ${product['name']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Unidade: $unit'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Quantidade',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () {
+              final qty = double.tryParse(controller.text.replaceAll(',', '.')) ?? 1.0;
+              Navigator.pop(ctx);
+              _addProduct(product['id'], qty);
+            },
+            child: const Text('Adicionar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addProduct(int productId, double quantity) async {
+    setState(() => _isAdding = true);
+    try {
+      final service = getIt<ShoppingListService>();
+      await service.addItemToList(widget.listId, productId, quantity, '');
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isAdding = false);
+    }
   }
 }

@@ -42,9 +42,16 @@ class ProductService {
     }
   }
 
-  Future<List<dynamic>> searchProducts(String query) async {
+  Future<List<dynamic>> searchProducts(String query, {int page = 0, int size = 10}) async {
     try {
-      final response = await apiClient.dio.get('/product/search', queryParameters: {'name': query});
+      final response = await apiClient.dio.get(
+        '/product/search', 
+        queryParameters: {
+          'name': query,
+          'page': page,
+          'size': size,
+        },
+      );
       if (response.statusCode == 200) {
         return response.data as List<dynamic>;
       }
