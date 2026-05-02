@@ -17,20 +17,19 @@ class ZipCodeServiceImpl implements IZipCodeService {
         return Left(ServerFailure(message: 'Invalid ZipCode.'));
       }
 
-      final response = await _apiClient.dio.get('https://viacep.com.br/ws/$cleanZipCode/json/');
+      final response = await _apiClient.dio.get('https://cep.awesomeapi.com.br/json/$cleanZipCode');
 
       if (response.data != null) {
-        if (response.data['erro'] == true) {
+        if (response.data['status'] == 404 || response.data['code'] == 'not_found') {
           return Left(ServerFailure(message: 'ZipCode not found.'));
         }
 
         return Right({
-          'street': response.data['logradouro'] ?? '',
-          'complement': response.data['complemento'] ?? '',
-          'neighborhood': response.data['bairro'] ?? '',
-          'city': response.data['localidade'] ?? '',
-          'state': response.data['uf'] ?? '',
-          'uf': response.data['uf'] ?? '',
+          'street': response.data['address'] ?? '',
+          'complement': '',
+          'neighborhood': response.data['district'] ?? '',
+          'city': response.data['city'] ?? '',
+          'uf': response.data['state'] ?? '',
         });
       }
 

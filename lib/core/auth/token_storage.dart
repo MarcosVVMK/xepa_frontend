@@ -31,4 +31,9 @@ class TokenStorage {
   Future<void> deleteUser() async {
     await _storage.delete(key: _userKey);
   }
+
+  Future<void> clearAll() async {
+    await deleteToken();
+    await deleteUser();
+  }
 }

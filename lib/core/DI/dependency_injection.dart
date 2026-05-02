@@ -24,6 +24,8 @@ import '../services/zipcode_service.dart';
 import '../services/zipcode_service_impl.dart';
 
 import '../../features/nfc_scanner/data/datasources/nfc_parser_service.dart';
+import '../../features/product/data/datasources/product_service.dart';
+import '../../features/shopping_list/data/datasources/shopping_list_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -78,6 +80,8 @@ class DependencyInjection {
     
     // DataSources
     getIt.registerLazySingleton(() => NfcParserService(getIt<ApiClient>()));
+    getIt.registerLazySingleton(() => ProductService(getIt<ApiClient>()));
+    getIt.registerLazySingleton(() => ShoppingListService(getIt<ApiClient>()));
 
     // Repositories
     // getIt.registerLazySingleton<INfcRepository>(() => NfcRepositoryImpl(getIt()));

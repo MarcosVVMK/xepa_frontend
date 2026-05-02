@@ -29,6 +29,7 @@ class NfcInvoiceAddress {
   final String? neighborhood;
   final String? city;
   final String? uf;
+  final String? zipCode;
 
   NfcInvoiceAddress({
     this.street,
@@ -37,6 +38,7 @@ class NfcInvoiceAddress {
     this.neighborhood,
     this.city,
     this.uf,
+    this.zipCode,
   });
 
   Map<String, dynamic> toJson() => {
@@ -46,5 +48,6 @@ class NfcInvoiceAddress {
     'neighborhood': neighborhood,
     'city': city,
     'uf': uf,
+    'zipCode': zipCode,
   };
 }

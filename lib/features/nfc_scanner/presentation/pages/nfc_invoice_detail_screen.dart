@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import '../../data/datasources/nfc_parser_service.dart';
@@ -351,7 +352,7 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _salvarNota(BuildContext context) async {
+  Future<void> _saveNfce(BuildContext context) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -362,7 +363,7 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
 
     try {
       final parserService = getIt<NfcParserService>();
-      await parserService.salvarNfce(invoice);
+      await parserService.saveNfce(invoice);
       
       if (context.mounted) {
         Navigator.pop(context); 
@@ -375,6 +376,7 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
         Navigator.pop(context);
       }
     } catch (e, stack) {
+      dev.log('Erro detalhado ao salvar NFCe no banco', error: e, stackTrace: stack);
       if (context.mounted) {
         Navigator.pop(context); 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -403,7 +405,7 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () => _salvarNota(context),
+        onPressed: () => _saveNfce(context),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF42A5F5),
           foregroundColor: Colors.white,

@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:dio/dio.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
 import '../../domain/entities/nfc_invoice.dart';
@@ -9,7 +10,7 @@ class NfcParserService {
 
   NfcParserService(this._apiClient);
 
-  Future<void> salvarNfce(NfcInvoice invoice) async {
+  Future<void> saveNfce(NfcInvoice invoice) async {
     final payload = {
       'supermarketName': invoice.supermarketName,
       'cnpj': invoice.cnpj,
@@ -22,12 +23,13 @@ class NfcParserService {
         'unit': item.unit,
         'unitPrice': item.unitPrice,
         'totalPrice': item.totalPrice,
+        'barcode': item.barcode,
       }).toList(),
     };
 
     try {
       final response = await _apiClient.dio.post(
-        '/nfce/salvar',
+        '/nfce/save',
         data: payload,
       );
     } on DioException catch (e) {
@@ -38,8 +40,8 @@ class NfcParserService {
     }
   }
 
-  Future<NfcInvoice> consultarPorChaveAcesso(String chaveAcesso) async {
-    final cleaned = chaveAcesso.replaceAll(RegExp(r'[^0-9]'), '');
+  Future<NfcInvoice> consultByAccessKey(String accessKey) async {
+    final cleaned = accessKey.replaceAll(RegExp(r'[^0-9]'), '');
 
     if (cleaned.length != 44) {
       throw Exception('Chave de acesso deve conter 44 dígitos');
@@ -47,30 +49,37 @@ class NfcParserService {
 
     try {
       final response = await _apiClient.dio.post(
-        '/nfce/consulta',
+        '/nfce/consult',
         data: {'chave_acesso': cleaned},
       );
 
       final data = response.data;
       return _mapResponseToInvoice(data, cleaned);
-    } on DioException catch (e) {
+    } on DioException catch (e, stack) {
+      dev.log('DioException ao consultar NFC-e', error: e, stackTrace: stack);
       if (e.response != null && e.response!.data is Map) {
         final errorMsg = e.response!.data['error'] ?? 'Erro desconhecido';
         throw Exception(errorMsg);
       }
       throw Exception('Erro de conexão com o servidor: ${e.type} - ${e.message}');
-    } catch (e) {
+    } catch (e, stack) {
+      dev.log('Erro genérico ao consultar NFC-e', error: e, stackTrace: stack);
       rethrow;
     }
   }
 
   Future<NfcInvoice> parseUrl(String url) async {
-    final chaveAcesso = _extractChaveFromUrl(url);
+    try {
+      final accessKey = _extractChaveFromUrl(url);
 
-    if (chaveAcesso != null) {
-      return consultarPorChaveAcesso(chaveAcesso);
+      if (accessKey != null) {
+        return await consultByAccessKey(accessKey);
+      }
+      throw Exception('Não foi possível extrair a chave de acesso da URL');
+    } catch (e, stack) {
+      dev.log('Erro ao processar URL NFC-e', error: e, stackTrace: stack);
+      rethrow;
     }
-    throw Exception('Não foi possível extrair a chave de acesso da URL');
   }
 
   String? _extractChaveFromUrl(String url) {
@@ -84,9 +93,9 @@ class NfcParserService {
         if (key.length == 44) return key;
       }
 
-      final chaveParam = uri.queryParameters['chNFe'] ?? uri.queryParameters['chave'];
-      if (chaveParam != null) {
-        final key = chaveParam.replaceAll(RegExp(r'[^0-9]'), '');
+      final keyParam = uri.queryParameters['chNFe'] ?? uri.queryParameters['chave'];
+      if (keyParam != null) {
+        final key = keyParam.replaceAll(RegExp(r'[^0-9]'), '');
         if (key.length == 44) return key;
       }
 
@@ -95,63 +104,111 @@ class NfcParserService {
       if (match != null) return match.group(0);
 
     } catch (e) {
-      // Ignora e retorna null
+      dev.log('Erro ao extrair chave de acesso', error: e);
     }
     return null;
   }
 
-  NfcInvoice _mapResponseToInvoice(Map<String, dynamic> data, String chaveAcesso) {
+  NfcInvoice _mapResponseToInvoice(Map<String, dynamic> data, String accessKey) {
+   try {
     final emitente = data['emitente'] as Map<String, dynamic>? ?? {};
     final produtos = data['produtos'] as List<dynamic>? ?? [];
     final totais = data['totais'] as Map<String, dynamic>? ?? {};
     final valores = data['valores'] as Map<String, dynamic>? ?? {};
     final infoNota = data['informacoes_nota'] as Map<String, dynamic>? ?? {};
+    final nfe = data['nfe'] as Map<String, dynamic>? ?? {};
 
-    final nomeEstabelecimento = emitente['nome_razao_social'] as String?
-        ?? emitente['nome_fantasia'] as String?
+    final nomeEstabelecimento = emitente['nome_fantasia'] as String?
+        ?? emitente['nome'] as String?
+        ?? emitente['nome_razao_social'] as String?
         ?? emitente['razao_social'] as String?
         ?? 'Estabelecimento';
 
     final cnpj = emitente['cnpj'] as String? ?? '';
     final enderecoStr = emitente['endereco'] as String?;
-    final address = _parseAddress(enderecoStr);
+    
+    NfcInvoiceAddress? address;
+    if (emitente.containsKey('bairro') && emitente.containsKey('municipio')) {
+      String? street = enderecoStr;
+      String? number;
+      String? complement;
+      
+      if (enderecoStr != null) {
+        final parts = enderecoStr.split(',').map((s) => s.trim()).toList();
+        if (parts.isNotEmpty) street = parts[0];
+        if (parts.length > 1) number = parts[1];
+        if (parts.length > 2) complement = parts[2] == '.' ? null : parts[2];
+      }
+      
+      String? city = emitente['municipio'] as String?;
+      if (city != null && city.contains('-')) {
+        city = city.split('-').last.trim();
+      }
 
-    final dataEmissaoStr = infoNota['data_emissao'] as String?;
+      address = NfcInvoiceAddress(
+        street: street,
+        number: number,
+        complement: complement,
+        neighborhood: emitente['bairro'] as String?,
+        city: city,
+        uf: emitente['uf'] as String?,
+        zipCode: emitente['cep'] as String?,
+      );
+    } else {
+      address = _parseAddress(enderecoStr);
+    }
+
+    final dataEmissaoStr = infoNota['data_emissao'] as String? ?? nfe['data_emissao'] as String?;
     DateTime dataEmissao;
     try {
-      dataEmissao = dataEmissaoStr != null
-          ? (dataEmissaoStr.contains('/') 
-              ? DateTime.parse(dataEmissaoStr.split('/').reversed.join('-'))
-              : DateTime.parse(dataEmissaoStr))
-          : DateTime.now();
+      if (dataEmissaoStr != null) {
+        // Formatos: "16/03/2026" ou "16/03/2026 11:47:38-03:00"
+        final datePart = dataEmissaoStr.split(' ')[0];
+        dataEmissao = datePart.contains('/') 
+            ? DateTime.parse(datePart.split('/').reversed.join('-'))
+            : DateTime.parse(datePart);
+      } else {
+        dataEmissao = DateTime.now();
+      }
     } catch (_) {
       dataEmissao = DateTime.now();
     }
 
     final items = produtos.map((p) {
       final prod = p as Map<String, dynamic>;
-      final qty = _parseDouble(prod['quantidade'] ?? prod['normalizado_quantidade']);
-      final tPrice = _parseDouble(prod['valor_total'] ?? prod['valor_total_produto'] ?? prod['normalizado_valor_total_produto']);
+      final qty = _parseDouble(prod['qtd'] ?? prod['quantidade'] ?? prod['normalizado_quantidade']);
+      final tPrice = _parseDouble(prod['valor'] ?? prod['normalizado_valor'] ?? prod['valor_total'] ?? prod['valor_total_produto'] ?? prod['normalizado_valor_total_produto'] ?? prod['valor_produto']);
       final uPrice = prod['valor_unitario'] != null || prod['normalizado_valor_unitario'] != null
           ? _parseDouble(prod['valor_unitario'] ?? prod['normalizado_valor_unitario'])
           : (qty > 0 ? tPrice / qty : tPrice);
 
+      String? barcode;
+      if (prod['ean_comercial'] != null && prod['ean_comercial'] != 'SEM GTIN') {
+        barcode = prod['ean_comercial'] as String?;
+      } else if (prod['ean_tributavel'] != null && prod['ean_tributavel'] != 'SEM GTIN') {
+        barcode = prod['ean_tributavel'] as String?;
+      }
+
       return NfcInvoiceItem(
-        name: prod['nome'] as String? ?? 'Produto',
+        name: prod['descricao'] as String? ?? prod['nome'] as String? ?? 'Produto',
         quantity: qty,
-        unit: prod['unidade'] as String? ?? 'UN',
+        unit: prod['unidade'] as String? ?? prod['unidade_comercial'] as String? ?? 'UN',
         unitPrice: uPrice,
         totalPrice: tPrice,
+        barcode: barcode,
       );
     }).toList();
 
     var totalValue = _parseDouble(
       valores['total'] ??
+      nfe['valor_total'] ??
+      nfe['normalizado_valor_total'] ??
       data['valor_total'] ?? 
       data['valor_a_pagar'] ?? 
       data['normalizado_valor_a_pagar'] ??
       data['normalizado_valor_total'] ??
       (data['valor'] != null && data['valor'] is Map ? data['valor']['total'] : null) ??
+      totais['valor_nfe'] ??
       totais['valor_total'] ?? 
       totais['valor_a_pagar']
     );
@@ -164,11 +221,15 @@ class NfcParserService {
       supermarketName: nomeEstabelecimento,
       cnpj: cnpj,
       date: dataEmissao,
-      accessKey: chaveAcesso,
+      accessKey: accessKey,
       items: items,
       totalValue: totalValue,
       address: address,
     );
+   } catch (e, stack) {
+     dev.log('Erro fatal no mapeamento do JSON', error: e, stackTrace: stack);
+     rethrow;
+   }
   }
 
   NfcInvoiceAddress? _parseAddress(String? addressStr) {

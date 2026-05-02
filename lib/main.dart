@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/DI/dependency_injection.dart';
 import 'core/auth/token_storage.dart';
 import 'features/auth/presentation/pages/login_screen.dart';
+import 'features/auth/data/datasources/auth_remote_ds.dart';
 import 'features/dashboard/presentation/pages/dashboard_screen.dart';
 
 void main() async {
@@ -60,10 +61,29 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<void> _checkAuth() async {
     try {
       final tokenStorage = getIt<TokenStorage>();
+      final authDataSource = getIt<AuthRemoteDataSource>();
+      
       final token = await tokenStorage.getToken();
+      
+      if (token != null && token.isNotEmpty) {
+        final isValid = await authDataSource.verifyToken();
+        
+        if (isValid) {
+          if (mounted) {
+            setState(() {
+              _isAuthenticated = true;
+              _isLoading = false;
+            });
+          }
+          return;
+        } else {
+          await tokenStorage.clearAll();
+        }
+      }
+      
       if (mounted) {
         setState(() {
-          _isAuthenticated = token != null && token.isNotEmpty;
+          _isAuthenticated = false;
           _isLoading = false;
         });
       }

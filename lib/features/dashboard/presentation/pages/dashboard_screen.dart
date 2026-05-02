@@ -8,6 +8,7 @@ import 'package:xepa_frontend/features/shopping_list/presentation/pages/lists_sc
 import 'package:xepa_frontend/features/nfc_scanner/presentation/pages/qr_scanner_screen.dart';
 import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/explore_screen.dart';
 import 'package:xepa_frontend/features/profile/presentation/pages/profile_screen.dart';
+import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,11 +21,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
   UserModel? _user;
   bool _isLoading = true;
   int _currentNavIndex = 0;
+  List<dynamic> _cheapestProducts = [];
+  bool _isLoadingProducts = true;
+  List<dynamic> _closestProducts = [];
+  bool _isLoadingClosestProducts = true;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadCheapestProducts();
+    _loadClosestProducts();
+  }
+
+  Future<void> _loadClosestProducts() async {
+    try {
+      final productService = getIt<ProductService>();
+      final products = await productService.getClosestProducts();
+      if (mounted) {
+        setState(() {
+          _closestProducts = products;
+          _isLoadingClosestProducts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingClosestProducts = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadCheapestProducts() async {
+    try {
+      final productService = getIt<ProductService>();
+      final products = await productService.getCheapestProducts();
+      if (mounted) {
+        setState(() {
+          _cheapestProducts = products;
+          _isLoadingProducts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingProducts = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadUser() async {
@@ -84,30 +129,154 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             _buildHeader(),
             const SizedBox(height: 24),
-            Center(
-              child: Padding(
-                padding:  const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-                child: Column(
-                  children: [
-                    Icon(Icons.storefront_rounded, size: 80, color: Colors.grey[300]),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Bem-vindo ao Xepa!',
-                      style: TextStyle(fontSize: 18, color: Colors.grey[500], fontWeight: FontWeight.w600),
-                    ),
-                     const SizedBox(height: 8),
-                    Text(
-                      'Em breve, ofertas e mercados aparecerão aqui.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[400]),
-                    ),
-                  ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Ofertas Mais Baratas',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
                 ),
               ),
             ),
             const SizedBox(height: 16),
+            _isLoadingProducts 
+                ? const Center(child: CircularProgressIndicator())
+                : _cheapestProducts.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Column(
+                            children: [
+                              Icon(Icons.sell_outlined, size: 60, color: Colors.grey[300]),
+                              const SizedBox(height: 16),
+                              Text('Nenhuma oferta encontrada', style: TextStyle(color: Colors.grey[500])),
+                            ],
+                          ),
+                        ),
+                      )
+                    : SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _cheapestProducts.length,
+                          itemBuilder: (context, index) {
+                            final item = _cheapestProducts[index];
+                            final product = item['product'];
+                            final supermarket = item['supermarket'];
+                            final price = item['price'];
+                            
+                            return _buildProductCard(product, supermarket, price);
+                          },
+                        ),
+                      ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Ofertas Mais Próximas',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _isLoadingClosestProducts 
+                ? const Center(child: CircularProgressIndicator())
+                : _closestProducts.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Column(
+                            children: [
+                              Icon(Icons.location_on_outlined, size: 60, color: Colors.grey[300]),
+                              const SizedBox(height: 16),
+                              Text('Nenhuma oferta próxima', style: TextStyle(color: Colors.grey[500])),
+                            ],
+                          ),
+                        ),
+                      )
+                    : SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _closestProducts.length,
+                          itemBuilder: (context, index) {
+                            final item = _closestProducts[index];
+                            final product = item['product'];
+                            final supermarket = item['supermarket'];
+                            final price = item['price'];
+                            
+                            return _buildProductCard(product, supermarket, price);
+                          },
+                        ),
+                      ),
+            const SizedBox(height: 16),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProductCard(dynamic product, dynamic supermarket, dynamic price) {
+    return Container(
+      width: 160,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: Icon(Icons.shopping_bag_outlined, color: Colors.grey),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            product['name'] ?? '',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+          const Spacer(),
+          Text(
+            supermarket['name'] ?? '',
+            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Color(0xFF4CAF50),
+            ),
+          ),
+        ],
       ),
     );
   }

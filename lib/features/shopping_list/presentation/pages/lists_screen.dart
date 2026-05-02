@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:xepa_frontend/core/DI/dependency_injection.dart';
+import 'package:xepa_frontend/features/shopping_list/data/datasources/shopping_list_service.dart';
 import 'list_detail_screen.dart';
 
 class ListsScreen extends StatefulWidget {
@@ -9,7 +11,30 @@ class ListsScreen extends StatefulWidget {
 }
 
 class _ListsScreenState extends State<ListsScreen> {
-  final List<ShoppingList> _lists = [];
+  List<dynamic> _lists = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLists();
+  }
+
+  Future<void> _loadLists() async {
+    setState(() => _isLoading = true);
+    try {
+      final service = getIt<ShoppingListService>();
+      final lists = await service.getShoppingLists();
+      if (mounted) {
+        setState(() {
+          _lists = lists;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   void _showCreateListDialog() {
     final controller = TextEditingController();
@@ -39,22 +64,17 @@ class _ListsScreenState extends State<ListsScreen> {
             child: Text('Cancelar', style: TextStyle(color: Colors.grey[600])),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (controller.text.trim().isNotEmpty) {
-                setState(() {
-                  _lists.add(ShoppingList(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    name: controller.text.trim(),
-                    itemCount: 0,
-                    total: 0,
-                    color: [
-                      const Color(0xFFAB47BC),
-                      const Color(0xFFEF5350),
-                      const Color(0xFF26A69A),
-                    ][_lists.length % 3],
-                  ));
-                });
                 Navigator.pop(ctx);
+                setState(() => _isLoading = true);
+                try {
+                  final service = getIt<ShoppingListService>();
+                  await service.createShoppingList(controller.text.trim());
+                  await _loadLists();
+                } catch (e) {
+                  setState(() => _isLoading = false);
+                }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -114,13 +134,15 @@ class _ListsScreenState extends State<ListsScreen> {
             ),
             // Lists
             Expanded(
-              child: _lists.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _lists.length,
-                      itemBuilder: (context, index) => _buildListCard(_lists[index]),
-                    ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _lists.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _lists.length,
+                          itemBuilder: (context, index) => _buildListCard(_lists[index]),
+                        ),
             ),
           ],
         ),
@@ -156,7 +178,20 @@ class _ListsScreenState extends State<ListsScreen> {
     );
   }
 
-  Widget _buildListCard(ShoppingList list) {
+  Widget _buildListCard(dynamic list) {
+    // Parse values safely
+    final String name = list['name'] ?? 'Lista';
+    final int itemCount = list['itemCount'] ?? 0;
+    final double total = (list['total'] ?? 0).toDouble();
+    
+    // Convert hex color to Color object
+    String colorString = list['color'] ?? '#2196F3';
+    colorString = colorString.replaceAll('#', '');
+    if (colorString.length == 6) {
+      colorString = 'FF$colorString';
+    }
+    final Color color = Color(int.parse(colorString, radix: 16));
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -167,8 +202,8 @@ class _ListsScreenState extends State<ListsScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => ListDetailScreen(listName: list.name)),
-            );
+              MaterialPageRoute(builder: (_) => ListDetailScreen(listName: name, listId: list['id'])),
+            ).then((_) => _loadLists());
           },
           child: Container(
             padding: const EdgeInsets.all(16),
@@ -182,10 +217,10 @@ class _ListsScreenState extends State<ListsScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: list.color.withValues(alpha: 0.12),
+                    color: color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.list_alt_rounded, color: list.color, size: 24),
+                  child: Icon(Icons.list_alt_rounded, color: color, size: 24),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -193,7 +228,7 @@ class _ListsScreenState extends State<ListsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        list.name,
+                        name,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -202,7 +237,7 @@ class _ListsScreenState extends State<ListsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${list.itemCount} itens',
+                        '$itemCount itens',
                         style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                       ),
                     ],
@@ -212,7 +247,7 @@ class _ListsScreenState extends State<ListsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'R\$ ${list.total.toStringAsFixed(2).replaceAll('.', ',')}',
+                      'R\$ ${total.toStringAsFixed(2).replaceAll('.', ',')}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -230,20 +265,4 @@ class _ListsScreenState extends State<ListsScreen> {
       ),
     );
   }
-}
-
-class ShoppingList {
-  final String id;
-  final String name;
-  final int itemCount;
-  final double total;
-  final Color color;
-
-  ShoppingList({
-    required this.id,
-    required this.name,
-    required this.itemCount,
-    required this.total,
-    required this.color,
-  });
 }

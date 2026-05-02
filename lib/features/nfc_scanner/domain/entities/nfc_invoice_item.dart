@@ -4,6 +4,7 @@ class NfcInvoiceItem {
   final String unit;
   final double unitPrice;
   final double totalPrice;
+  final String? barcode;
 
   NfcInvoiceItem({
     required this.name,
@@ -11,5 +12,6 @@ class NfcInvoiceItem {
     required this.unit,
     required this.unitPrice,
     required this.totalPrice,
+    this.barcode,
   });
 }

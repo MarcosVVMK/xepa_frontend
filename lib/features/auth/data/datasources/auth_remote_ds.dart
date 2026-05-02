@@ -64,6 +64,15 @@ class AuthRemoteDataSource {
     }
   }
 
+  Future<bool> verifyToken() async {
+    try {
+      final response = await apiClient.dio.get('/customer/me');
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
   String _extractErrorMessage(DioException e) {
     if (e.response?.data != null) {
       final data = e.response?.data;
@@ -72,8 +81,8 @@ class AuthRemoteDataSource {
           return data['detail'];
         } else if (data['detail'] is List) {
            final List errors = data['detail'];
-           if (errors.isNotEmpty && errors[0] is Map) {
-             return errors[0]['msg'] ?? 'Erro de validação';
+           if (errors.isNotEmpty && errors[0] is String) {
+             return errors[0];
            }
         }
       }

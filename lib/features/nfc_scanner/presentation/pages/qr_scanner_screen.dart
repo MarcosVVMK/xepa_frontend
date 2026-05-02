@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
@@ -117,7 +118,8 @@ class _QrScannerScreenState extends State<QrScannerScreen>
           _scannerController.start();
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      dev.log('Erro ao processar QR Code NFC-e', error: e, stackTrace: stack);
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -372,7 +374,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                     _registeredTags.add(NfcTag(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
                       code: _nfcCodeController.text.trim(),
-                      label: 'Nova Tag',
+                      label: 'NFC',
                       registeredAt: DateTime.now(),
                       itemCount: 0,
                     ));
@@ -439,22 +441,27 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   }
 
   Widget _buildTagCard(NfcTag tag, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
+    return InkWell(
+      onTap: () {
+        _processNfcUrl(tag.code);
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
         children: [
           Container(
             width: 48,
@@ -546,7 +553,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
