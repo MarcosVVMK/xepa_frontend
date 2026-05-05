@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:xepa_frontend/core/api/api_client.dart';
 import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
 import 'package:dio/dio.dart';
@@ -24,7 +25,8 @@ class AuthRemoteDataSource {
         'token': token,
         'user': userModel,
       };
-    } on DioException catch (e) {
+    } on DioException catch (e, stackTrace) {
+      dev.log('DioException no login', error: e, stackTrace: stackTrace);
       final message = _extractErrorMessage(e);
       throw Exception(message);
     }
@@ -58,7 +60,8 @@ class AuthRemoteDataSource {
         'token': token,
         'user': userModel,
       };
-    } on DioException catch (e) {
+    } on DioException catch (e, stackTrace) {
+      dev.log('DioException no registro', error: e, stackTrace: stackTrace);
       final message = _extractErrorMessage(e);
       throw Exception(message);
     }
@@ -68,7 +71,8 @@ class AuthRemoteDataSource {
     try {
       final response = await apiClient.dio.get('/customer/me');
       return response.statusCode == 200;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao verificar token', error: e, stackTrace: stackTrace);
       return false;
     }
   }

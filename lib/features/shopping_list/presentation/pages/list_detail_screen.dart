@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
@@ -7,7 +8,11 @@ import 'package:xepa_frontend/features/product/data/datasources/product_service.
 class ListDetailScreen extends StatefulWidget {
   final String listName;
   final int listId;
-  const ListDetailScreen({super.key, required this.listName, required this.listId});
+  const ListDetailScreen({
+    super.key,
+    required this.listName,
+    required this.listId,
+  });
 
   @override
   State<ListDetailScreen> createState() => _ListDetailScreenState();
@@ -34,7 +39,8 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao carregar lista de compras', error: e, stackTrace: stackTrace);
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -45,7 +51,10 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     return sum + (qty * price);
   });
 
-  int get _totalItems => _items.fold(0, (sum, item) => sum + ((item['quantity'] ?? 0).toInt() as int));
+  int get _totalItems => _items.fold(
+    0,
+    (sum, item) => sum + ((item['quantity'] ?? 0).toInt() as int),
+  );
 
   Future<void> _removeItem(int index) async {
     final itemId = _items[index]['id'];
@@ -53,8 +62,9 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
       final service = getIt<ShoppingListService>();
       await service.removeItemFromList(widget.listId, itemId);
       await _loadList();
-    } catch (e) {
-      // Error handling
+    } catch (e, stackTrace) {
+      dev.log('Erro ao remover item da lista', error: e, stackTrace: stackTrace);
+      // Falha silenciosa ao remover item
     }
   }
 
@@ -70,13 +80,18 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () async {
               final newName = controller.text.trim();
               if (newName.isNotEmpty) {
                 final service = getIt<ShoppingListService>();
-                await service.updateShoppingList(widget.listId, {'name': newName});
+                await service.updateShoppingList(widget.listId, {
+                  'name': newName,
+                });
                 if (mounted) Navigator.pop(ctx);
                 _loadList();
               }
@@ -93,9 +108,14 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Apagar lista?'),
-        content: const Text('Tem certeza que deseja apagar esta lista? Esta ação não pode ser desfeita.'),
+        content: const Text(
+          'Tem certeza que deseja apagar esta lista? Esta ação não pode ser desfeita.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () async {
               final service = getIt<ShoppingListService>();
@@ -144,10 +164,17 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 24),
+                  const Icon(
+                    Icons.shopping_cart_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -167,7 +194,11 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+                            const Icon(
+                              Icons.edit_rounded,
+                              color: Colors.white,
+                              size: 14,
+                            ),
                           ],
                         ),
                         Text(
@@ -196,7 +227,11 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                           IconButton(
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            icon: const Icon(Icons.delete_forever_rounded, color: Colors.white, size: 20),
+                            icon: const Icon(
+                              Icons.delete_forever_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                             onPressed: _showDeleteListDialog,
                           ),
                         ],
@@ -216,9 +251,9 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
             ),
             // Items
             Expanded(
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : _items.isEmpty
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _items.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
@@ -261,7 +296,11 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.shopping_basket_outlined, size: 80, color: Colors.grey[300]),
+          Icon(
+            Icons.shopping_basket_outlined,
+            size: 80,
+            color: Colors.grey[300],
+          ),
           const SizedBox(height: 16),
           Text(
             'Lista vazia',
@@ -366,8 +405,11 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
             onTap: () => _removeItem(index),
             child: const Padding(
               padding: EdgeInsets.all(4),
-              child: Icon(Icons.delete_outline_rounded,
-                  color: Color(0xFFEF5350), size: 24),
+              child: Icon(
+                Icons.delete_outline_rounded,
+                color: Color(0xFFEF5350),
+                size: 24,
+              ),
             ),
           ),
         ],
@@ -375,28 +417,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     );
   }
 
-  Widget _buildQtyButton(IconData icon, VoidCallback onTap,
-      {bool filled = false}) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: filled ? const Color(0xFF2196F3) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: filled ? Colors.white : const Color(0xFF6B7280),
-        ),
-      ),
-    );
-  }
 }
-
 
 class _AddProductSheet extends StatefulWidget {
   final int listId;
@@ -412,7 +433,7 @@ class _AddProductSheetState extends State<_AddProductSheet> {
   List<dynamic> _searchResults = [];
   bool _isLoading = false;
   bool _isAdding = false;
-  
+
   int _page = 0;
   final int _size = 20;
   bool _hasMore = true;
@@ -464,8 +485,12 @@ class _AddProductSheetState extends State<_AddProductSheet> {
     setState(() => _isLoading = true);
     try {
       final service = getIt<ProductService>();
-      final results = await service.searchProducts(query, page: _page, size: _size);
-      
+      final results = await service.searchProducts(
+        query,
+        page: _page,
+        size: _size,
+      );
+
       if (mounted) {
         setState(() {
           _searchResults.addAll(results);
@@ -476,18 +501,20 @@ class _AddProductSheetState extends State<_AddProductSheet> {
           }
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao buscar produtos', error: e, stackTrace: stackTrace);
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
-        top: 24, left: 16, right: 16,
+        top: 24,
+        left: 16,
+        right: 16,
       ),
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.7,
@@ -499,16 +526,18 @@ class _AddProductSheetState extends State<_AddProductSheet> {
               decoration: InputDecoration(
                 hintText: 'Buscar produto...',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                suffixIcon: _searchController.text.isNotEmpty 
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        _onSearchChanged('');
-                      },
-                    )
-                  : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
               ),
             ),
             const SizedBox(height: 16),
@@ -527,20 +556,31 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                             ),
                           );
                         }
-                            final p = _searchResults[index];
-                            return ListTile(
-                              leading: const Icon(Icons.shopping_bag_outlined),
-                              title: Text(p['name'] ?? ''),
-                              subtitle: Text('${p['brand'] ?? ''} • ${p['unitMeasure'] ?? ''}'),
-                              trailing: _isAdding 
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                : IconButton(
-                                  icon: const Icon(Icons.add_circle, color: Colors.blue),
+                        final p = _searchResults[index];
+                        return ListTile(
+                          leading: const Icon(Icons.shopping_bag_outlined),
+                          title: Text(p['name'] ?? ''),
+                          subtitle: Text(
+                            '${p['brand'] ?? ''} • ${p['unitMeasure'] ?? ''}',
+                          ),
+                          trailing: _isAdding
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : IconButton(
+                                  icon: const Icon(
+                                    Icons.add_circle,
+                                    color: Colors.blue,
+                                  ),
                                   onPressed: () => _showQuantityDialog(p),
                                 ),
-                            );
-                          },
-                        ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -551,7 +591,7 @@ class _AddProductSheetState extends State<_AddProductSheet> {
   Future<void> _showQuantityDialog(dynamic product) async {
     final controller = TextEditingController(text: '1');
     final unit = product['unitMeasure'] ?? 'UNIDADE';
-    
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -564,7 +604,9 @@ class _AddProductSheetState extends State<_AddProductSheet> {
             const SizedBox(height: 16),
             TextField(
               controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Quantidade',
                 border: OutlineInputBorder(),
@@ -574,10 +616,14 @@ class _AddProductSheetState extends State<_AddProductSheet> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () {
-              final qty = double.tryParse(controller.text.replaceAll(',', '.')) ?? 1.0;
+              final qty =
+                  double.tryParse(controller.text.replaceAll(',', '.')) ?? 1.0;
               Navigator.pop(ctx);
               _addProduct(product['id'], qty);
             },
@@ -596,7 +642,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
       if (mounted) {
         Navigator.pop(context);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao adicionar produto à lista', error: e, stackTrace: stackTrace);
       if (mounted) setState(() => _isAdding = false);
     }
   }

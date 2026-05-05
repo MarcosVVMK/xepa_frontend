@@ -6,7 +6,6 @@ import '../../domain/entities/nfc_invoice_item.dart';
 
 class NfcParserService {
   final ApiClient _apiClient;
-  static const _tag = 'NfcParserService';
 
   NfcParserService(this._apiClient);
 
@@ -28,11 +27,12 @@ class NfcParserService {
     };
 
     try {
-      final response = await _apiClient.dio.post(
+      await _apiClient.dio.post(
         '/nfce/save',
         data: payload,
       );
-    } on DioException catch (e) {
+    } on DioException catch (e, stackTrace) {
+      dev.log('Erro ao salvar NFC-e', error: e, stackTrace: stackTrace);
       if (e.response != null && e.response!.data is Map) {
         throw Exception(e.response!.data['error'] ?? 'Erro ao salvar dados da nota');
       }
@@ -70,7 +70,7 @@ class NfcParserService {
 
   Future<NfcInvoice> parseUrl(String url) async {
     try {
-      final accessKey = _extractChaveFromUrl(url);
+      final accessKey = _extractKeyFromUrl(url);
 
       if (accessKey != null) {
         return await consultByAccessKey(accessKey);
@@ -82,7 +82,7 @@ class NfcParserService {
     }
   }
 
-  String? _extractChaveFromUrl(String url) {
+  String? _extractKeyFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
 
@@ -111,36 +111,36 @@ class NfcParserService {
 
   NfcInvoice _mapResponseToInvoice(Map<String, dynamic> data, String accessKey) {
    try {
-    final emitente = data['emitente'] as Map<String, dynamic>? ?? {};
-    final produtos = data['produtos'] as List<dynamic>? ?? [];
-    final totais = data['totais'] as Map<String, dynamic>? ?? {};
-    final valores = data['valores'] as Map<String, dynamic>? ?? {};
-    final infoNota = data['informacoes_nota'] as Map<String, dynamic>? ?? {};
-    final nfe = data['nfe'] as Map<String, dynamic>? ?? {};
+    final issuer = data['emitente'] as Map<String, dynamic>? ?? {};
+    final products = data['produtos'] as List<dynamic>? ?? [];
+    final totals = data['totais'] as Map<String, dynamic>? ?? {};
+    final values = data['valores'] as Map<String, dynamic>? ?? {};
+    final invoiceInfo = data['informacoes_nota'] as Map<String, dynamic>? ?? {};
+    final invoiceData = data['nfe'] as Map<String, dynamic>? ?? {};
 
-    final nomeEstabelecimento = emitente['nome_fantasia'] as String?
-        ?? emitente['nome'] as String?
-        ?? emitente['nome_razao_social'] as String?
-        ?? emitente['razao_social'] as String?
+    final establishmentName = issuer['nome_fantasia'] as String?
+        ?? issuer['nome'] as String?
+        ?? issuer['nome_razao_social'] as String?
+        ?? issuer['razao_social'] as String?
         ?? 'Estabelecimento';
 
-    final cnpj = emitente['cnpj'] as String? ?? '';
-    final enderecoStr = emitente['endereco'] as String?;
+    final cnpj = issuer['cnpj'] as String? ?? '';
+    final addressStr = issuer['endereco'] as String?;
     
     NfcInvoiceAddress? address;
-    if (emitente.containsKey('bairro') && emitente.containsKey('municipio')) {
-      String? street = enderecoStr;
+    if (issuer.containsKey('bairro') && issuer.containsKey('municipio')) {
+      String? street = addressStr;
       String? number;
       String? complement;
       
-      if (enderecoStr != null) {
-        final parts = enderecoStr.split(',').map((s) => s.trim()).toList();
+      if (addressStr != null) {
+        final parts = addressStr.split(',').map((s) => s.trim()).toList();
         if (parts.isNotEmpty) street = parts[0];
         if (parts.length > 1) number = parts[1];
         if (parts.length > 2) complement = parts[2] == '.' ? null : parts[2];
       }
       
-      String? city = emitente['municipio'] as String?;
+      String? city = issuer['municipio'] as String?;
       if (city != null && city.contains('-')) {
         city = city.split('-').last.trim();
       }
@@ -149,50 +149,50 @@ class NfcParserService {
         street: street,
         number: number,
         complement: complement,
-        neighborhood: emitente['bairro'] as String?,
+        neighborhood: issuer['bairro'] as String?,
         city: city,
-        uf: emitente['uf'] as String?,
-        zipCode: emitente['cep'] as String?,
+        uf: issuer['uf'] as String?,
+        zipCode: issuer['cep'] as String?,
       );
     } else {
-      address = _parseAddress(enderecoStr);
+      address = _parseAddress(addressStr);
     }
 
-    final dataEmissaoStr = infoNota['data_emissao'] as String? ?? nfe['data_emissao'] as String?;
-    DateTime dataEmissao;
+    final emissionDateStr = invoiceInfo['data_emissao'] as String? ?? invoiceData['data_emissao'] as String?;
+    DateTime emissionDate;
     try {
-      if (dataEmissaoStr != null) {
+      if (emissionDateStr != null) {
         // Formatos: "16/03/2026" ou "16/03/2026 11:47:38-03:00"
-        final datePart = dataEmissaoStr.split(' ')[0];
-        dataEmissao = datePart.contains('/') 
+        final datePart = emissionDateStr.split(' ')[0];
+        emissionDate = datePart.contains('/') 
             ? DateTime.parse(datePart.split('/').reversed.join('-'))
             : DateTime.parse(datePart);
       } else {
-        dataEmissao = DateTime.now();
+        emissionDate = DateTime.now();
       }
     } catch (_) {
-      dataEmissao = DateTime.now();
+      emissionDate = DateTime.now();
     }
 
-    final items = produtos.map((p) {
-      final prod = p as Map<String, dynamic>;
-      final qty = _parseDouble(prod['qtd'] ?? prod['quantidade'] ?? prod['normalizado_quantidade']);
-      final tPrice = _parseDouble(prod['valor'] ?? prod['normalizado_valor'] ?? prod['valor_total'] ?? prod['valor_total_produto'] ?? prod['normalizado_valor_total_produto'] ?? prod['valor_produto']);
-      final uPrice = prod['valor_unitario'] != null || prod['normalizado_valor_unitario'] != null
-          ? _parseDouble(prod['valor_unitario'] ?? prod['normalizado_valor_unitario'])
+    final items = products.map((p) {
+      final productData = p as Map<String, dynamic>;
+      final qty = _parseDouble(productData['qtd'] ?? productData['quantidade'] ?? productData['normalizado_quantidade']);
+      final tPrice = _parseDouble(productData['valor'] ?? productData['normalizado_valor'] ?? productData['valor_total'] ?? productData['valor_total_produto'] ?? productData['normalizado_valor_total_produto'] ?? productData['valor_produto']);
+      final uPrice = productData['valor_unitario'] != null || productData['normalizado_valor_unitario'] != null
+          ? _parseDouble(productData['valor_unitario'] ?? productData['normalizado_valor_unitario'])
           : (qty > 0 ? tPrice / qty : tPrice);
 
       String? barcode;
-      if (prod['ean_comercial'] != null && prod['ean_comercial'] != 'SEM GTIN') {
-        barcode = prod['ean_comercial'] as String?;
-      } else if (prod['ean_tributavel'] != null && prod['ean_tributavel'] != 'SEM GTIN') {
-        barcode = prod['ean_tributavel'] as String?;
+      if (productData['ean_comercial'] != null && productData['ean_comercial'] != 'SEM GTIN') {
+        barcode = productData['ean_comercial'] as String?;
+      } else if (productData['ean_tributavel'] != null && productData['ean_tributavel'] != 'SEM GTIN') {
+        barcode = productData['ean_tributavel'] as String?;
       }
 
       return NfcInvoiceItem(
-        name: prod['descricao'] as String? ?? prod['nome'] as String? ?? 'Produto',
+        name: productData['descricao'] as String? ?? productData['nome'] as String? ?? 'Produto',
         quantity: qty,
-        unit: prod['unidade'] as String? ?? prod['unidade_comercial'] as String? ?? 'UN',
+        unit: productData['unidade'] as String? ?? productData['unidade_comercial'] as String? ?? 'UN',
         unitPrice: uPrice,
         totalPrice: tPrice,
         barcode: barcode,
@@ -200,17 +200,17 @@ class NfcParserService {
     }).toList();
 
     var totalValue = _parseDouble(
-      valores['total'] ??
-      nfe['valor_total'] ??
-      nfe['normalizado_valor_total'] ??
+      values['total'] ??
+      invoiceData['valor_total'] ??
+      invoiceData['normalizado_valor_total'] ??
       data['valor_total'] ?? 
       data['valor_a_pagar'] ?? 
       data['normalizado_valor_a_pagar'] ??
       data['normalizado_valor_total'] ??
       (data['valor'] != null && data['valor'] is Map ? data['valor']['total'] : null) ??
-      totais['valor_nfe'] ??
-      totais['valor_total'] ?? 
-      totais['valor_a_pagar']
+      totals['valor_nfe'] ??
+      totals['valor_total'] ?? 
+      totals['valor_a_pagar']
     );
 
     if (totalValue == 0.0 && items.isNotEmpty) {
@@ -218,9 +218,9 @@ class NfcParserService {
     }
 
     return NfcInvoice(
-      supermarketName: nomeEstabelecimento,
+      supermarketName: establishmentName,
       cnpj: cnpj,
-      date: dataEmissao,
+      date: emissionDate,
       accessKey: accessKey,
       items: items,
       totalValue: totalValue,

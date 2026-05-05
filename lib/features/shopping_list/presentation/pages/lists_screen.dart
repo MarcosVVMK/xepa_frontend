@@ -44,7 +44,10 @@ class _ListsScreenState extends State<ListsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Nova Lista',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1F2937),
+          ),
         ),
         content: TextField(
           controller: controller,
@@ -80,7 +83,9 @@ class _ListsScreenState extends State<ListsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2196F3),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Criar'),
           ),
@@ -108,7 +113,11 @@ class _ListsScreenState extends State<ListsScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 26),
+                  const Icon(
+                    Icons.shopping_cart_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -124,7 +133,10 @@ class _ListsScreenState extends State<ListsScreen> {
                         ),
                         Text(
                           '${_lists.length} listas criadas',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
@@ -137,12 +149,13 @@ class _ListsScreenState extends State<ListsScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _lists.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _lists.length,
-                          itemBuilder: (context, index) => _buildListCard(_lists[index]),
-                        ),
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _lists.length,
+                      itemBuilder: (context, index) =>
+                          _buildListCard(_lists[index]),
+                    ),
             ),
           ],
         ),
@@ -152,7 +165,10 @@ class _ListsScreenState extends State<ListsScreen> {
         backgroundColor: const Color(0xFF2196F3),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('Nova Lista', style: TextStyle(fontWeight: FontWeight.w600)),
+        label: const Text(
+          'Nova Lista',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
@@ -166,7 +182,11 @@ class _ListsScreenState extends State<ListsScreen> {
           const SizedBox(height: 16),
           Text(
             'Nenhuma lista criada',
-            style: TextStyle(fontSize: 18, color: Colors.grey[500], fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[500],
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -183,7 +203,7 @@ class _ListsScreenState extends State<ListsScreen> {
     final String name = list['name'] ?? 'Lista';
     final int itemCount = list['itemCount'] ?? 0;
     final double total = (list['total'] ?? 0).toDouble();
-    
+
     // Convert hex color to Color object
     String colorString = list['color'] ?? '#2196F3';
     colorString = colorString.replaceAll('#', '');
@@ -202,7 +222,10 @@ class _ListsScreenState extends State<ListsScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => ListDetailScreen(listName: name, listId: list['id'])),
+              MaterialPageRoute(
+                builder: (_) =>
+                    ListDetailScreen(listName: name, listId: list['id']),
+              ),
             ).then((_) => _loadLists());
           },
           child: Container(

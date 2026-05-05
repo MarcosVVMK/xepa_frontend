@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:xepa_frontend/core/auth/token_storage.dart';
 import 'package:xepa_frontend/core/errors/failure.dart';
 import 'package:xepa_frontend/core/utils/typedef.dart';
@@ -31,7 +32,8 @@ class AuthRepositoryImpl implements IAuthRepository {
       await tokenStorage.saveUser(jsonEncode(user.toJson()));
 
       return Right(user);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro no login', error: e, stackTrace: stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -64,7 +66,8 @@ class AuthRepositoryImpl implements IAuthRepository {
       await tokenStorage.saveUser(jsonEncode(user.toJson()));
 
       return Right(user);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro no registro de usuário', error: e, stackTrace: stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -78,7 +81,8 @@ class AuthRepositoryImpl implements IAuthRepository {
         return Right(userModel);
       }
       return const Right(null);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao obter usuário atual do cache', error: e, stackTrace: stackTrace);
       return Left(CacheFailure(message: e.toString()));
     }
   }
@@ -89,7 +93,8 @@ class AuthRepositoryImpl implements IAuthRepository {
       await tokenStorage.deleteToken();
       await tokenStorage.deleteUser();
       return const Right(null);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao realizar logout (limpeza de cache)', error: e, stackTrace: stackTrace);
       return Left(CacheFailure(message: e.toString()));
     }
   }

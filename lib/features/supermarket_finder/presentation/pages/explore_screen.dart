@@ -103,7 +103,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
               decoration:  const BoxDecoration(
@@ -145,7 +144,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ],
               ),
             ),
-            // Search Bar
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Container(
@@ -182,7 +180,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            // Title
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Row(
@@ -203,7 +200,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ],
               ),
             ),
-            // List
             Expanded(
               child: _isLoading 
                 ? const Center(child: CircularProgressIndicator())

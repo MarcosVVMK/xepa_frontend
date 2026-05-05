@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
@@ -104,7 +105,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } else if (mounted) {
         setState(() => _isLoading = false);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao carregar dados do usuário', error: e, stackTrace: stackTrace);
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -133,7 +135,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao salvar dados pessoais', error: e, stackTrace: stackTrace);
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -165,7 +168,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             longitude = coords['longitude'];
           },
         );
-      } catch (geoError) {
+      } catch (e, stackTrace) {
+        dev.log('Erro ao obter coordenadas (geocodificação)', error: e, stackTrace: stackTrace);
+        // Falha ao obter coordenadas, continua sem latitude/longitude
       }
 
       await _apiClient.dio.post('/address', data: {
@@ -193,11 +198,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao salvar endereço', error: e, stackTrace: stackTrace);
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Erro ao salvar endereço!'),
             backgroundColor: Color(0xFFEF5350),
           ),
@@ -263,7 +269,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           (route) => false,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao excluir conta', error: e, stackTrace: stackTrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -698,7 +705,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 }
                               },
                             );
-                            } catch (e) {
+                            } catch (e, stackTrace) {
+                              dev.log('Erro ao buscar CEP', error: e, stackTrace: stackTrace);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(

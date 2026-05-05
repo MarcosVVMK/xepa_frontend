@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:dartz/dartz.dart';
 import 'package:xepa_frontend/core/errors/failure.dart';
 import 'package:xepa_frontend/core/utils/typedef.dart';
@@ -16,7 +17,8 @@ class ProfileRepositoryImpl implements IProfileRepository {
     try {
       final result = await remoteDataSource.getProfile();
       return Right(result);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao obter perfil', error: e, stackTrace: stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -36,7 +38,8 @@ class ProfileRepositoryImpl implements IProfileRepository {
         phone: phone,
       );
       return Right(result);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao atualizar perfil', error: e, stackTrace: stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -64,7 +67,8 @@ class ProfileRepositoryImpl implements IProfileRepository {
         uf: uf,
       );
       return Right(result);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao salvar endereço', error: e, stackTrace: stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -74,7 +78,8 @@ class ProfileRepositoryImpl implements IProfileRepository {
     try {
       final result = await remoteDataSource.getAddress();
       return Right(result);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao obter endereço', error: e, stackTrace: stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -90,7 +95,8 @@ class ProfileRepositoryImpl implements IProfileRepository {
         newPassword: newPassword,
       );
       return const Right(null);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log('Erro ao alterar senha', error: e, stackTrace: stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
