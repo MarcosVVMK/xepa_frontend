@@ -13,6 +13,8 @@ class AddressModel extends Address {
     required super.uf,
     super.createdAt,
     super.updatedAt,
+    super.latitude,
+    super.longitude,
   });
 
   factory AddressModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,8 @@ class AddressModel extends Address {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : null,
+      latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
+      longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
     );
   }
 
@@ -48,6 +52,8 @@ class AddressModel extends Address {
       'uf': uf,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }

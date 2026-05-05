@@ -118,6 +118,8 @@ void main() {
     mockRepository = MockProfileRepository();
     mockRepository.profileToReturn = tProfile;
     mockRepository.addressToReturn = tAddress;
+  });
+
   group('GetProfileUseCase', () {
     test('should get profile from repository', () async {
       final useCase = GetProfileUseCase(mockRepository);

@@ -90,6 +90,8 @@ void main() {
       mockDataSource,
       tokenStorage: mockTokenStorage,
     );
+  });
+
   group('login', () {
     test('should return User and save token on success', () async {
       final result = await repository.login(
@@ -141,6 +143,8 @@ void main() {
         (_) => fail('Should not succeed'),
       );
     });
+  });
+
   group('register', () {
     test('should return User and save token on success', () async {
       final result = await repository.register(

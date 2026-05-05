@@ -24,7 +24,6 @@ class NfcTag {
 class NfcCodeValidator {
   static bool isValidCode(String code) {
     if (code.isEmpty) return false;
-    // Must match NFC-YYYY-XXXX pattern
     final regex = RegExp(r'^NFC-\d{4}-\d{4}$');
     return regex.hasMatch(code);
   }
@@ -34,17 +33,16 @@ class NfcCodeValidator {
   }
 
   static String? extractCodeFromQr(String qrData) {
-    // QR data might contain a URL or raw code
     if (NfcCodeValidator.isValidCode(qrData)) return qrData;
 
-    // Try to extract from URL
     final regex = RegExp(r'NFC-\d{4}-\d{4}');
     final match = regex.firstMatch(qrData);
     return match?.group(0);
   }
 }
 
-  void group('NfcTag', () {
+void main() {
+  group('NfcTag', () {
     test('should store all properties correctly', () {
       final tag = NfcTag(
         id: '1',

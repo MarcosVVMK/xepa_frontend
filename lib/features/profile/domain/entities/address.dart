@@ -12,6 +12,8 @@ class Address extends Equatable {
   final String uf;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final double? latitude;
+  final double? longitude;
 
   const Address({
     this.id,
@@ -25,6 +27,8 @@ class Address extends Equatable {
     required this.uf,
     this.createdAt,
     this.updatedAt,
+    this.latitude,
+    this.longitude,
   });
 
   @override
@@ -40,5 +44,7 @@ class Address extends Equatable {
         uf,
         createdAt,
         updatedAt,
+        latitude,
+        longitude,
       ];
 }

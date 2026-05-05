@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:xepa_frontend/features/profile/domain/entities/address.dart';
 
 class User extends Equatable {
   final int? id;
@@ -8,6 +9,7 @@ class User extends Equatable {
   final String cpf;
   final String phone;
   final DateTime? createdAt;
+  final Address? address;
 
   const User({
     this.id,
@@ -17,6 +19,7 @@ class User extends Equatable {
     required this.cpf,
     required this.phone,
     this.createdAt,
+    this.address,
   });
 
   @override
@@ -28,5 +31,6 @@ class User extends Equatable {
         cpf,
         phone,
         createdAt,
+        address,
       ];
 }

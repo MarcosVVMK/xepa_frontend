@@ -74,6 +74,8 @@ void main() {
   setUp(() {
     mockRepository = MockAuthRepository();
     mockRepository.userToReturn = tUser;
+  });
+
   group('LoginUseCase', () {
     test('should call repository login with correct parameters', () async {
       final useCase = LoginUseCase(mockRepository);

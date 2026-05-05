@@ -1,4 +1,5 @@
 import 'package:xepa_frontend/features/auth/domain/entities/user.dart';
+import 'package:xepa_frontend/features/profile/data/models/address_model.dart';
 
 class UserModel extends User {
   const UserModel({
@@ -9,6 +10,7 @@ class UserModel extends User {
     required super.cpf,
     required super.phone,
     super.createdAt,
+    super.address,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,7 @@ class UserModel extends User {
       createdAt: json['created_at'] != null || json['createdAt'] != null
           ? DateTime.parse(json['created_at'] ?? json['createdAt'])
           : null,
+      address: json['address'] != null ? AddressModel.fromJson(json['address']) : null,
     );
   }
 
@@ -34,6 +37,7 @@ class UserModel extends User {
       'cpf': cpf,
       'phone': phone,
       'created_at': createdAt?.toIso8601String(),
+      'address': address != null ? (address as AddressModel).toJson() : null,
     };
   }
 }

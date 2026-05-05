@@ -10,6 +10,7 @@ import 'package:xepa_frontend/features/nfc_scanner/presentation/pages/qr_scanner
 import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/explore_screen.dart';
 import 'package:xepa_frontend/features/profile/presentation/pages/profile_screen.dart';
 import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
+import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -26,6 +27,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoadingProducts = true;
   List<dynamic> _closestProducts = [];
   bool _isLoadingClosestProducts = true;
+  List<dynamic> _closestSupermarkets = [];
+  bool _isLoadingSupermarkets = true;
 
   @override
   void initState() {
@@ -33,6 +36,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadUser();
     _loadCheapestProducts();
     _loadClosestProducts();
+    _loadClosestSupermarkets();
+  }
+
+  Future<void> _loadClosestSupermarkets() async {
+    try {
+      final supermarketService = getIt<SupermarketService>();
+      final supermarkets = await supermarketService.getClosestSupermarkets();
+      if (mounted) {
+        setState(() {
+          _closestSupermarkets = supermarkets;
+          _isLoadingSupermarkets = false;
+        });
+      }
+    } catch (e, stackTrace) {
+      dev.log('Erro ao carregar supermercados mais próximos', error: e, stackTrace: stackTrace);
+      if (mounted) {
+        setState(() {
+          _isLoadingSupermarkets = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadClosestProducts() async {
@@ -132,6 +156,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
+            const SizedBox(height: 16),
+            _buildSupermarketStories(),
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -223,6 +249,106 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 16),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSupermarketStories() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            'Mercados na Região',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF374151),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 100,
+          child: _isLoadingSupermarkets
+              ? const Center(child: CircularProgressIndicator())
+              : _closestSupermarkets.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Nenhum mercado próximo',
+                        style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                      ),
+                    )
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _closestSupermarkets.length,
+                      itemBuilder: (context, index) {
+                        final market = _closestSupermarkets[index];
+                        return _buildStoryItem(market);
+                      },
+                    ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStoryItem(dynamic market) {
+    return Container(
+      width: 80,
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2196F3), Color(0xFF64B5F6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2196F3).withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ClipOval(
+                child: Center(
+                  child: Icon(
+                    Icons.store_rounded,
+                    color: Colors.grey[400],
+                    size: 32,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            market['name'] ?? 'Mercado',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF4B5563),
+            ),
+          ),
+        ],
       ),
     );
   }

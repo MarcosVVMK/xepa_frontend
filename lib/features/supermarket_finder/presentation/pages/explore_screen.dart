@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
+import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
+import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
+import 'package:xepa_frontend/core/auth/token_storage.dart';
+import 'dart:convert';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -13,7 +19,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<dynamic> _searchResults = [];
   bool _isLoading = false;
-  final supermarkets = <_Supermarket>[];
+  final List<dynamic> _supermarkets = [];
+  bool _showMap = false;
+  LatLng? _userLocation;
 
   @override
   void initState() {
@@ -27,32 +35,23 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
 
     try {
-      final productService = getIt<ProductService>();
-      final results = await productService.getClosestProducts();
+      final tokenStorage = getIt<TokenStorage>();
+      final userJson = await tokenStorage.getUser();
       
-      final Set<String> seenIds = {};
-      final List<_Supermarket> loadedMarkets = [];
-      
-      for (var item in results) {
-        final market = item['supermarket'];
-        if (market != null && market['id'] != null) {
-          final idStr = market['id'].toString();
-          if (!seenIds.contains(idStr)) {
-            seenIds.add(idStr);
-            loadedMarkets.add(_Supermarket(
-              name: market['name'] ?? 'Mercado',
-              distance: 'Próximo',
-              address: market['address'] ?? 'Endereço não disponível',
-              color: const Color(0xFF2196F3),
-            ));
-          }
+      if (userJson != null) {
+        final user = UserModel.fromJson(jsonDecode(userJson));
+        if (user.address?.latitude != null && user.address?.longitude != null) {
+          _userLocation = LatLng(user.address!.latitude!, user.address!.longitude!);
         }
       }
 
+      final supermarketService = getIt<SupermarketService>();
+      final results = await supermarketService.getClosestSupermarkets();
+      
       if (mounted) {
         setState(() {
-          supermarkets.clear();
-          supermarkets.addAll(loadedMarkets);
+          _supermarkets.clear();
+          _supermarkets.addAll(results);
           _isLoading = false;
         });
       }
@@ -137,9 +136,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.send_rounded),
+                    icon: Icon(_showMap ? Icons.list_rounded : Icons.map_rounded),
                     color: Colors.white,
-                    onPressed: () {},
+                    onPressed: () {
+                      setState(() {
+                        _showMap = !_showMap;
+                      });
+                    },
                   ),
                 ],
               ),
@@ -194,7 +197,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                   const Spacer(),
                   Text(
-                    _searchResults.isEmpty ? '${supermarkets.length} encontrados' : '${_searchResults.length} produtos',
+                    _searchResults.isEmpty ? '${_supermarkets.length} encontrados' : '${_searchResults.length} produtos',
                     style: TextStyle(fontSize: 13, color: Colors.grey[400]),
                   ),
                 ],
@@ -209,35 +212,81 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         itemCount: _searchResults.length,
                         itemBuilder: (context, index) => _buildProductResultCard(_searchResults[index]),
                       )
-                    : supermarkets.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.store_outlined, size: 80, color: Colors.grey[300]) ,
-                              const SizedBox(height: 16),
-                              Text(
-                                'Nenhum mercado encontrado',
-                                style: TextStyle(fontSize: 18, color: Colors.grey[500], fontWeight: FontWeight.w600),
+                    : _showMap
+                        ? _buildMapView()
+                        : _supermarkets.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.store_outlined, size: 80, color: Colors.grey[300]) ,
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Nenhum mercado encontrado',
+                                    style: TextStyle(fontSize: 18, color: Colors.grey[500], fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Verifique sua localização',
+                                    style:TextStyle(fontSize: 14, color: Colors.grey[400]),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Verifique sua localização',
-                                style:TextStyle(fontSize: 14, color: Colors.grey[400]),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: supermarkets.length,
-                          itemBuilder: (context, index) =>
-                              _buildSupermarketCard(context, supermarkets[index]),
-                        ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: _supermarkets.length,
+                              itemBuilder: (context, index) =>
+                                  _buildSupermarketCard(context, _supermarkets[index]),
+                            ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMapView() {
+    final center = _userLocation ?? const LatLng(-23.5505, -46.6333); // Default to SP if location not found
+    
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: center,
+        initialZoom: 14.0,
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.xepa.app',
+        ),
+        MarkerLayer(
+          markers: [
+            if (_userLocation != null)
+              Marker(
+                point: _userLocation!,
+                width: 40,
+                height: 40,
+                child: const Icon(
+                  Icons.person_pin_circle,
+                  color: Colors.red,
+                  size: 40,
+                ),
+              ),
+            ..._supermarkets.where((s) => s['address']?['latitude'] != null).map((s) {
+              return Marker(
+                point: LatLng(s['address']['latitude'], s['address']['longitude']),
+                width: 40,
+                height: 40,
+                child: const Icon(
+                  Icons.store_rounded,
+                  color: Color(0xFF2196F3),
+                  size: 30,
+                ),
+              );
+            }),
+          ],
+        ),
+      ],
     );
   }
 
@@ -284,7 +333,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
 
-  Widget _buildSupermarketCard(BuildContext context, _Supermarket market) {
+  Widget _buildSupermarketCard(BuildContext context, dynamic market) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -308,18 +357,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
               Container(
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: market.color,
+                  color: Color(0xFF2196F3),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  market.name,
+                  market['name'] ?? 'Mercado',
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                     color: Color(0xFF1F2937),
                   ),
                 ),
@@ -333,13 +382,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   size: 14, color: Colors.grey[400]),
               const SizedBox(width: 4),
               Text(
-                market.distance,
+                'Aprox. ${market['distance']?.toStringAsFixed(1) ?? '??'} km',
                 style: TextStyle(fontSize: 13, color: Colors.grey[500]),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  market.address,
+                  market['address']?['street'] ?? 'Endereço não disponível',
                   style: TextStyle(fontSize: 13, color: Colors.grey[400]),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -361,8 +410,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
               ),
               child: const Text(
-                'Selecionar rota',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                'Ver no mapa',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -370,18 +419,4 @@ class _ExploreScreenState extends State<ExploreScreen> {
       ),
     );
   }
-}
-
-class _Supermarket {
-  final String name;
-  final String distance;
-  final String address;
-  final Color color;
-
-  const _Supermarket({
-    required this.name,
-    required this.distance,
-    required this.address,
-    required this.color,
-  });
 }

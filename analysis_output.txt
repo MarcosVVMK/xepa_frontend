@@ -1,0 +1,25 @@
+Analyzing frontend...
+
+  error - lib/core/usecase/usecase.dart:3:5 - Undefined class 'ResultFuture'. Try changing the name to the name of an existing class, or creating a class with the name 'ResultFuture'. - undefined_class
+  error - lib/core/usecase/usecase.dart:3:18 - The name 'T' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'T'. - non_type_as_type_argument
+  error - lib/core/usecase/usecase.dart:3:26 - Undefined class 'Params'. Try changing the name to the name of an existing class, or creating a class with the name 'Params'. - undefined_class
+  error - test/features/auth/data/repositories/auth_repository_impl_test.dart:211:1 - Expected to find ';'. - expected_token
+  error - test/features/auth/data/repositories/auth_repository_impl_test.dart:212:1 - Expected to find ')'. - expected_token
+  error - test/features/auth/data/repositories/auth_repository_impl_test.dart:212:1 - Expected to find '}'. - expected_token
+  error - test/features/auth/domain/usecases/auth_usecases_test.dart:201:1 - Expected to find ';'. - expected_token
+  error - test/features/auth/domain/usecases/auth_usecases_test.dart:202:1 - Expected to find ')'. - expected_token
+  error - test/features/auth/domain/usecases/auth_usecases_test.dart:202:1 - Expected to find '}'. - expected_token
+  error - test/features/nfc_scanner/domain/entities/nfc_tag_test.dart:47:14 - Expected an identifier. - missing_identifier
+  error - test/features/nfc_scanner/domain/entities/nfc_tag_test.dart:47:24 - Expected an identifier. - missing_identifier
+  error - test/features/nfc_scanner/domain/entities/nfc_tag_test.dart:47:27 - Expected to find ')'. - expected_token
+  error - test/features/profile/data/repositories/profile_repository_impl_test.dart:208:1 - Expected to find ';'. - expected_token
+  error - test/features/profile/data/repositories/profile_repository_impl_test.dart:209:1 - Expected to find ')'. - expected_token
+  error - test/features/profile/data/repositories/profile_repository_impl_test.dart:209:1 - Expected to find '}'. - expected_token
+  error - test/features/profile/domain/usecases/profile_usecases_test.dart:296:1 - Expected to find ';'. - expected_token
+  error - test/features/profile/domain/usecases/profile_usecases_test.dart:297:1 - Expected to find ')'. - expected_token
+  error - test/features/profile/domain/usecases/profile_usecases_test.dart:297:1 - Expected to find '}'. - expected_token
+   info - lib/features/shopping_list/presentation/pages/list_detail_screen.dart:95:44 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib/features/shopping_list/presentation/pages/list_detail_screen.dart:124:31 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - test/features/nfc_scanner/domain/entities/nfc_tag_test.dart:47:24 - Use the generic function type syntax to declare the parameter ''. Try using the generic function type syntax. - use_function_type_syntax_for_parameters
+
+21 issues found.
