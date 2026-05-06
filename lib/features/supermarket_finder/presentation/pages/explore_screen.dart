@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
 import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
 import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
 import 'package:xepa_frontend/core/auth/token_storage.dart';
 import 'dart:convert';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -22,6 +22,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final List<dynamic> _supermarkets = [];
   bool _showMap = false;
   LatLng? _userLocation;
+  final MapController _mapController = MapController();
 
   @override
   void initState() {
@@ -91,6 +92,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _openExternalMap(double lat, double lng, String label) async {
+    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
     }
   }
 
@@ -197,7 +205,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                   const Spacer(),
                   Text(
-                    _searchResults.isEmpty ? '${_supermarkets.length} encontrados' : '${_searchResults.length} produtos',
+                    _searchResults.isEmpty ? '${_supermarkets.length} encontrados' : '${_searchResults.length} mercados',
                     style: TextStyle(fontSize: 13, color: Colors.grey[400]),
                   ),
                 ],
@@ -210,7 +218,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ? ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: _searchResults.length,
-                        itemBuilder: (context, index) => _buildProductResultCard(_searchResults[index]),
+                        itemBuilder: (context, index) => _buildSupermarketCard(context, _searchResults[index]),
                       )
                     : _showMap
                         ? _buildMapView()
@@ -277,59 +285,36 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 point: LatLng(s['address']['latitude'], s['address']['longitude']),
                 width: 40,
                 height: 40,
-                child: const Icon(
-                  Icons.store_rounded,
-                  color: Color(0xFF2196F3),
-                  size: 30,
+                child: GestureDetector(
+                  onTap: () {
+                    // Opcional: mostrar algo ao tocar no marcador
+                  },
+                  child: const Icon(
+                    Icons.store_rounded,
+                    color: Color(0xFF2196F3),
+                    size: 30,
+                  ),
                 ),
               );
             }),
           ],
         ),
       ],
+      mapController: _mapController,
     );
   }
 
-  Widget _buildProductResultCard(dynamic product) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.shopping_bag_outlined, color: Colors.grey),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product['name'] ?? '',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                ),
-                if (product['brand'] != null)
-                  Text(
-                    product['brand'],
-                    style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  void _showOnMap(double lat, double lng) {
+    setState(() {
+      _showMap = true;
+    });
+    
+    // Pequeno delay para garantir que o widget do mapa foi construído e o controlador anexado
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        _mapController.move(LatLng(lat, lng), 16.0);
+      }
+    });
   }
 
   Widget _buildSupermarketCard(BuildContext context, dynamic market) {
@@ -387,7 +372,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  market['address']?['street'] ?? 'Endereço não disponível',
+                  _formatAddress(market['address']),
                   style: TextStyle(fontSize: 13, color: Colors.grey[400]),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -398,7 +383,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                final lat = market['address']?['latitude'];
+                final lng = market['address']?['longitude'];
+                if (lat != null && lng != null) {
+                  _showOnMap(lat, lng);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Localização não disponível')),
+                  );
+                }
+              },
+              onLongPress: () {
+                 final lat = market['address']?['latitude'];
+                final lng = market['address']?['longitude'];
+                if (lat != null && lng != null) {
+                  _openExternalMap(lat, lng, market['name'] ?? 'Mercado');
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2196F3),
                 foregroundColor: Colors.white,
@@ -417,5 +419,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ],
       ),
     );
+  }
+
+  String _formatAddress(Map<String, dynamic>? address) {
+    if (address == null) return 'Endereço não disponível';
+    
+    final street = address['street'] ?? '';
+    final number = address['number'] ?? '';
+    final neighborhood = address['neighborhood'] ?? '';
+    
+    if (street.isEmpty) return 'Endereço incompleto';
+    
+    String formatted = street;
+    if (number.isNotEmpty) formatted += ', $number';
+    if (neighborhood.isNotEmpty) formatted += ' - $neighborhood';
+    
+    return formatted;
   }
 }

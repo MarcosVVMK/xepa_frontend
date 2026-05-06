@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:dio/dio.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
@@ -55,8 +54,6 @@ class NfcParserService {
       );
 
       final data = response.data;
-
-      dev.debugger(); 
       
       return _mapResponseToInvoice(data, cleaned);
     } on DioException catch (e, stack) {
@@ -136,10 +133,6 @@ class NfcParserService {
       String? street;
       String? number;
       String? complement;
-      String? neighborhood = issuer['bairro'] as String?;
-      String? city = issuer['municipio'] as String?;
-      String? uf = issuer['uf'] as String?;
-      String? zipCode = issuer['cep'] as String?;
 
       if (addressStr != null) {
         if (addressStr.contains(',')) {
@@ -154,6 +147,8 @@ class NfcParserService {
           number = 'SN';
         }
       }
+
+      String? city = issuer['municipio'] as String?;
 
       if (city != null && city.contains('-')) {
         city = city.split('-').last.trim();

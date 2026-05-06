@@ -19,12 +19,10 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   final _nfcCodeController = TextEditingController();
   final NfcParserService _nfcParserService = getIt<NfcParserService>();
 
-  final List<NfcTag> _registeredTags = [];
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -37,14 +35,15 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
   bool _isProcessing = false;
 
-  void _handleScannedCode(String code) {
+  Future<void> _handleScannedCode(String code) async {
     if (_isProcessing) return;
     setState(() => _isProcessing = true);
-    _scannerController.stop();
+    await _scannerController.stop();
 
     if (code.contains('sefaz') || code.contains('nfce') || code.contains('fazenda')) {
-      _processNfcUrl(code);
+      await _processNfcUrl(code);
     } else {
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -196,7 +195,6 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                     tabs: const [
                       Tab(text: 'Escanear'),
                       Tab(text: 'Digitar Código'),
-                      Tab(text: 'Minhas Tags'),
                     ],
                   ),
                 ],
@@ -209,7 +207,6 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                 children: [
                   _buildScanTab(),
                   _buildManualTab(),
-                  _buildMyTagsTab(),
                 ],
               ),
             ),
@@ -363,197 +360,9 @@ class _QrScannerScreenState extends State<QrScannerScreen>
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                if (_nfcCodeController.text.trim().isNotEmpty) {
-                  setState(() {
-                    _registeredTags.add(NfcTag(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      code: _nfcCodeController.text.trim(),
-                      label: 'NFC',
-                      registeredAt: DateTime.now(),
-                      itemCount: 0,
-                    ));
-                    _nfcCodeController.clear();
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tag NFC cadastrada com sucesso!'),
-                      backgroundColor: Color(0xFF66BB6A),
-                    ),
-                  );
-                  _tabController.animateTo(2);
-                }
-              },
-              icon: const Icon(Icons.add_rounded),
-              label: const Text(
-                'Cadastrar Nova Tag',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF2196F3),
-                side: const BorderSide(color: Color(0xFF2196F3), width: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
-  }
-
-  Widget _buildMyTagsTab() {
-    return _registeredTags.isEmpty
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.nfc_rounded, size: 80, color: Colors.grey[300]),
-                const SizedBox(height: 16),
-                Text(
-                  'Nenhuma tag cadastrada',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[500],
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Escaneie ou digite um código NFC',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[400]),
-                ),
-              ],
-            ),
-          )
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _registeredTags.length,
-            itemBuilder: (context, index) =>
-                _buildTagCard(_registeredTags[index], index),
-          );
-  }
-
-  Widget _buildTagCard(NfcTag tag, int index) {
-    return InkWell(
-      onTap: () {
-        _processNfcUrl(tag.code);
-      },
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2196F3).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.nfc_rounded,
-                color: Color(0xFF2196F3), size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tag.label,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  tag.code,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[500],
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${tag.itemCount} itens • Cadastrada em ${tag.registeredAt.day}/${tag.registeredAt.month}/${tag.registeredAt.year}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[400]),
-                ),
-              ],
-            ),
-          ),
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert_rounded, color: Colors.grey[400]),
-            onSelected: (value) {
-              if (value == 'delete') {
-                setState(() => _registeredTags.removeAt(index));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Tag removida'),
-                    backgroundColor: Color(0xFFEF5350),
-                  ),
-                );
-              }
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'view',
-                child: Row(
-                  children: [
-                    Icon(Icons.visibility_rounded, size: 20),
-                    SizedBox(width: 8),
-                    Text('Ver detalhes'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_rounded, size: 20),
-                    SizedBox(width: 8),
-                    Text('Editar'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_rounded,
-                        size: 20, color: Color(0xFFEF5350)),
-                    SizedBox(width: 8),
-                    Text('Remover',
-                        style: TextStyle(color: Color(0xFFEF5350))),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ));
   }
 }
 
@@ -605,20 +414,4 @@ class _ScannerOverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class NfcTag {
-  final String id;
-  final String code;
-  final String label;
-  final DateTime registeredAt;
-  final int itemCount;
-
-  NfcTag({
-    required this.id,
-    required this.code,
-    required this.label,
-    required this.registeredAt,
-    required this.itemCount,
-  });
 }
