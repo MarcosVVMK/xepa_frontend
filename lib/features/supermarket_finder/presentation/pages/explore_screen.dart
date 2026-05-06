@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
+import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/supermarket_detail_screen.dart';
 import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
 import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
 import 'package:xepa_frontend/core/auth/token_storage.dart';
 import 'dart:convert';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
 import 'package:xepa_frontend/features/product/data/models/product_model.dart';
@@ -127,13 +127,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _openExternalMap(double lat, double lng, String label) async {
-    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
     }
   }
 
@@ -396,103 +389,98 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   Widget _buildSupermarketCard(BuildContext context, SupermarketModel market) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SupermarketDetailScreen(supermarket: market),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
             children: [
               Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFF2196F3),
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.store_rounded, color: Color(0xFF2196F3), size: 30),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      market.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _formatAddress(market.address),
+                            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  market.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
+              Column(
+                children: [
+                  if (market.distance != null)
+                    Text(
+                      '${market.distance!.toStringAsFixed(1)} km',
+                      style: const TextStyle(
+                        color: Color(0xFF2196F3),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  IconButton(
+                    icon: const Icon(Icons.map_outlined, color: Color(0xFF2196F3), size: 20),
+                    onPressed: () {
+                      if (market.address?.latitude != null && market.address?.longitude != null) {
+                        _showOnMap(market.address!.latitude!, market.address!.longitude!);
+                      }
+                    },
                   ),
-                ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(Icons.location_on_outlined,
-                  size: 14, color: Colors.grey[400]),
-              const SizedBox(width: 4),
-              Text(
-                'Aprox. ${market.distance?.toStringAsFixed(1) ?? '??'} km',
-                style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _formatAddress(market.address),
-                  style: TextStyle(fontSize: 13, color: Colors.grey[400]),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                final lat = market.address?.latitude;
-                final lng = market.address?.longitude;
-                if (lat != null && lng != null) {
-                  _showOnMap(lat, lng);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Localização não disponível')),
-                  );
-                }
-              },
-              onLongPress: () {
-                 final lat = market.address?.latitude;
-                final lng = market.address?.longitude;
-                if (lat != null && lng != null) {
-                  _openExternalMap(lat, lng, market.name);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'Ver no mapa',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

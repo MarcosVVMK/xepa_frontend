@@ -16,6 +16,7 @@ import 'package:xepa_frontend/features/supermarket_finder/data/datasources/super
 import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
 
 import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
+import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/supermarket_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -292,60 +293,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStoryItem(SupermarketModel market) {
-    return Container(
-      width: 80,
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      child: Column(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2196F3), Color(0xFF64B5F6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF2196F3).withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Container(
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SupermarketDetailScreen(supermarket: market),
+          ),
+        );
+      },
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: const Color(0xFF2196F3), width: 2),
               ),
-              child: ClipOval(
-                child: Center(
-                  child: Icon(
-                    Icons.store_rounded,
-                    color: Colors.grey[400],
-                    size: 32,
-                  ),
-                ),
+              child: CircleAvatar(
+                radius: 28,
+                backgroundColor: Colors.blue[50],
+                child: const Icon(Icons.storefront_rounded, color: Color(0xFF2196F3)),
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            market.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF4B5563),
+            const SizedBox(height: 6),
+            Text(
+              market.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF4B5563),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
 import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
+import 'package:xepa_frontend/features/product/data/models/product_price_model.dart';
 
 class SupermarketService {
   final ApiClient apiClient;
@@ -9,7 +10,7 @@ class SupermarketService {
 
   Future<List<SupermarketModel>> getAllSupermarkets() async {
     try {
-      final response = await apiClient.dio.get('/supermarket');
+      final response = await apiClient.dio.get('supermarket');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => SupermarketModel.fromJson(json)).toList();
@@ -22,7 +23,7 @@ class SupermarketService {
 
   Future<List<SupermarketModel>> getClosestSupermarkets() async {
     try {
-      final response = await apiClient.dio.get('/supermarket/closest');
+      final response = await apiClient.dio.get('supermarket/closest');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => SupermarketModel.fromJson(json)).toList();
@@ -36,11 +37,24 @@ class SupermarketService {
   Future<List<SupermarketModel>> searchSupermarkets(String query) async {
     try {
       final response = await apiClient.dio.get(
-        '/supermarket/search?name=$query',
+        'supermarket/search?name=$query',
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => SupermarketModel.fromJson(json)).toList();
+      }
+      return [];
+    } on DioException {
+      return [];
+    }
+  }
+
+  Future<List<ProductPrice>> getSupermarketProducts(int supermarketId) async {
+    try {
+      final response = await apiClient.dio.get('supermarket/$supermarketId/products');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => ProductPrice.fromJson(json)).toList();
       }
       return [];
     } on DioException {

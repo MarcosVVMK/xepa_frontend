@@ -37,10 +37,15 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
   Future<void> _handleScannedCode(String code) async {
     if (_isProcessing) return;
+    
+    final cleaned = code.replaceAll(RegExp(r'[^0-9]'), '');
+    
     setState(() => _isProcessing = true);
     await _scannerController.stop();
 
-    if (code.contains('sefaz') || code.contains('nfce') || code.contains('fazenda')) {
+    if (cleaned.length == 44) {
+      await _processAccessKey(cleaned);
+    } else if (code.contains('sefaz') || code.contains('nfce') || code.contains('fazenda')) {
       await _processNfcUrl(code);
     } else {
       if (!mounted) return;
@@ -48,8 +53,8 @@ class _QrScannerScreenState extends State<QrScannerScreen>
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text('QR Code Detectado'),
-          content: Text('O código lido não parece ser uma NFC-e válida.\n\nCódigo: $code'),
+          title: const Text('Código Detectado'),
+          content: Text('O código lido não parece ser uma NFC-e válida.\n\nConteúdo: $code'),
           actions: [
             TextButton(
               onPressed: () {
@@ -73,9 +78,30 @@ class _QrScannerScreenState extends State<QrScannerScreen>
     }
   }
 
-  Future<void> _processNfcUrl(String url) async {
+  Future<void> _processAccessKey(String accessKey) async {
     setState(() => _isProcessing = true);
     
+    _showLoadingDialog();
+
+    try {
+      final invoice = await _nfcParserService.consultByAccessKey(accessKey);
+      if (mounted) {
+        Navigator.pop(context); 
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => NfcInvoiceDetailScreen(invoice: invoice)),
+        );
+        if (mounted) {
+          setState(() => _isProcessing = false);
+          _scannerController.start();
+        }
+      }
+    } catch (e, stack) {
+      _handleError(e, stack);
+    }
+  }
+
+  void _showLoadingDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -103,6 +129,26 @@ class _QrScannerScreenState extends State<QrScannerScreen>
         ),
       ),
     );
+  }
+
+  void _handleError(dynamic e, StackTrace stack) {
+    dev.log('Erro ao processar NFC-e', error: e, stackTrace: stack);
+    if (mounted) {
+      if (Navigator.canPop(context)) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: const Color(0xFFEF5350),
+        ),
+      );
+      setState(() => _isProcessing = false);
+      _scannerController.start();
+    }
+  }
+
+  Future<void> _processNfcUrl(String url) async {
+    setState(() => _isProcessing = true);
+    _showLoadingDialog();
 
     try {
       final invoice = await _nfcParserService.parseUrl(url);
@@ -118,18 +164,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
         }
       }
     } catch (e, stack) {
-      dev.log('Erro ao processar QR Code NFC-e', error: e, stackTrace: stack);
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: const Color(0xFFEF5350),
-          ),
-        );
-        setState(() => _isProcessing = false);
-        _scannerController.start();
-      }
+      _handleError(e, stack);
     }
   }
 
@@ -303,7 +338,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
         children: [
           const SizedBox(height: 20),
           const Text(
-            'Digitar Código NFC',
+            'Digitar Chave de Acesso',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -312,17 +347,20 @@ class _QrScannerScreenState extends State<QrScannerScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Insira o código encontrado na etiqueta NFC manualmente',
+            'Insira os 44 dígitos da chave de acesso da NFC-e',
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
           const SizedBox(height: 24),
           TextField(
             controller: _nfcCodeController,
+            keyboardType: TextInputType.number,
+            maxLength: 44,
             decoration: InputDecoration(
-              hintText: 'Cole a URL da SEFAZ GO',
-              labelText: 'URL da NFC-e',
+              hintText: 'Ex: 52230501020304050607080910111213141516171819',
+              labelText: 'Chave de Acesso (44 dígitos)',
+              counterText: '',
               prefixIcon:
-                  const Icon(Icons.link_rounded, color: Color(0xFF42A5F5)),
+                  const Icon(Icons.vpn_key_rounded, color: Color(0xFF42A5F5)),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
               focusedBorder: OutlineInputBorder(

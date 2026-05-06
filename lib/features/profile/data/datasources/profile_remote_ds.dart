@@ -11,7 +11,7 @@ class ProfileRemoteDataSource {
 
   Future<ProfileModel> getProfile() async {
     try {
-      final response = await apiClient.dio.get('/profile');
+      final response = await apiClient.dio.get('profile');
       return ProfileModel.fromJson(response.data);
     } on DioException catch (e, stackTrace) {
       dev.log('DioException ao obter perfil', error: e, stackTrace: stackTrace);
@@ -27,7 +27,7 @@ class ProfileRemoteDataSource {
   }) async {
     try {
       final response = await apiClient.dio.put(
-        '/profile',
+        'profile',
         data: {
           'first_name': firstName,
           'last_name': lastName,
@@ -54,7 +54,7 @@ class ProfileRemoteDataSource {
   }) async {
     try {
       final response = await apiClient.dio.put(
-        '/profile/address',
+        'profile/address',
         data: {
           'zip_code': zipCode,
           'street': street,
@@ -75,7 +75,7 @@ class ProfileRemoteDataSource {
 
   Future<AddressModel> getAddress() async {
     try {
-      final response = await apiClient.dio.get('/profile/address');
+      final response = await apiClient.dio.get('profile/address');
       return AddressModel.fromJson(response.data);
     } on DioException catch (e, stackTrace) {
       dev.log('DioException ao obter endereço', error: e, stackTrace: stackTrace);
@@ -89,7 +89,7 @@ class ProfileRemoteDataSource {
   }) async {
     try {
       await apiClient.dio.put(
-        '/profile/password',
+        'profile/password',
         data: {
           'current_password': currentPassword,
           'new_password': newPassword,

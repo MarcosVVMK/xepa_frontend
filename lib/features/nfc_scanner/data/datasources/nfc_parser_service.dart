@@ -28,7 +28,7 @@ class NfcParserService {
 
     try {
       await _apiClient.dio.post(
-        '/nfce/save',
+        'nfce/save',
         data: payload,
       );
     } on DioException catch (e, stackTrace) {
@@ -50,7 +50,7 @@ class NfcParserService {
 
     try {
       final response = await _apiClient.dio.post(
-        '/nfce/consult',
+        'nfce/consult',
         data: {'chave_acesso': cleaned},
       );
 

@@ -14,7 +14,7 @@ class ProductService {
   }) async {
     try {
       final response = await apiClient.dio.get(
-        '/product?page=$page&size=$size',
+        'product?page=$page&size=$size',
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
@@ -28,7 +28,7 @@ class ProductService {
 
   Future<List<ProductPrice>> getCheapestProducts() async {
     try {
-      final response = await apiClient.dio.get('/product/cheapest');
+      final response = await apiClient.dio.get('product/cheapest');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => ProductPrice.fromJson(json)).toList();
@@ -41,7 +41,7 @@ class ProductService {
 
   Future<List<ProductPrice>> getClosestProducts() async {
     try {
-      final response = await apiClient.dio.get('/product/closest');
+      final response = await apiClient.dio.get('product/closest');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => ProductPrice.fromJson(json)).toList();
@@ -59,7 +59,7 @@ class ProductService {
   }) async {
     try {
       final response = await apiClient.dio.get(
-        '/product/search',
+        'product/search',
         queryParameters: {'name': query, 'page': page, 'size': size},
       );
       if (response.statusCode == 200) {
@@ -74,7 +74,7 @@ class ProductService {
 
   Future<List<ProductPrice>> getProductPrices(int productId) async {
     try {
-      final response = await apiClient.dio.get('/product/$productId/prices');
+      final response = await apiClient.dio.get('product/$productId/prices');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => ProductPrice.fromJson(json)).toList();

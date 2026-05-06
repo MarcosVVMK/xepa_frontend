@@ -79,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUser() async {
     try {
-      final response = await _apiClient.dio.get('/customer/me');
+      final response = await _apiClient.dio.get('customer/me');
       if (response.statusCode == 200 && response.data != null && mounted) {
         final data = response.data;
         setState(() {
@@ -173,7 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Falha ao obter coordenadas, continua sem latitude/longitude
       }
 
-      await _apiClient.dio.post('/address', data: {
+      await _apiClient.dio.post('address', data: {
         'zipCode': _zipCodeController.text,
         'street': _streetController.text,
         'number': _numberController.text,

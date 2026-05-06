@@ -4,6 +4,7 @@ import 'package:xepa_frontend/features/product/data/datasources/product_service.
 import 'package:xepa_frontend/features/product/data/models/product_model.dart';
 import 'package:xepa_frontend/features/product/data/models/product_price_model.dart';
 import 'package:xepa_frontend/features/shopping_list/data/datasources/shopping_list_service.dart';
+import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/supermarket_detail_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ProductModel product;
@@ -31,6 +32,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     setState(() => _isLoading = true);
     try {
       final prices = await _productService.getProductPrices(widget.product.id!);
+      prices.sort((a, b) => a.price.compareTo(b.price));
       setState(() {
         _prices = prices;
         _isLoading = false;
@@ -83,11 +85,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         child: const Icon(Icons.list_alt, color: Color(0xFF2196F3)),
                       ),
-                      title: Text(list['name']),
+                      title: Text(list.name),
                       onTap: () async {
                         Navigator.pop(context);
                         final result = await _shoppingListService.addItemToList(
-                          list['id'],
+                          list.id!,
                           widget.product.id!,
                           1.0,
                           '',
@@ -95,7 +97,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         if (!mounted) return;
                         if (result != null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Produto adicionado à lista ${list['name']}')),
+                            SnackBar(content: Text('Produto adicionado à lista ${list.name}')),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -129,13 +131,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               background: Container(
                 color: Colors.white,
                 child: Center(
-                  child: Hero(
-                    tag: 'product_${widget.product.id}',
-                    child: Icon(
-                      Icons.shopping_bag_outlined,
-                      size: 100,
-                      color: Colors.grey[300],
-                    ),
+                  child: Icon(
+                    Icons.shopping_bag_outlined,
+                    size: 100,
+                    color: Colors.grey[300],
                   ),
                 ),
               ),
@@ -166,7 +165,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          widget.product.category?.toString().split('.').last ?? 'OUTROS',
+                          (widget.product.category ?? 'OUTROS').toUpperCase(),
                           style: const TextStyle(
                             color: Color(0xFF2196F3),
                             fontSize: 12,
@@ -175,7 +174,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                       Text(
-                        'UN: ${widget.product.unitMeasure?.toString().split('.').last ?? 'UN'}',
+                        'UN: ${widget.product.unitMeasure ?? 'UN'}',
                         style: TextStyle(color: Colors.grey[500], fontSize: 13),
                       ),
                     ],
@@ -327,6 +326,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               const SizedBox(width: 16),
                               Expanded(
+                                flex: 3,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -345,42 +345,58 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   ],
                                 ),
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        supermarket.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            supermarket.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: Color(0xFF2196F3),
+                                          child: Icon(Icons.store, size: 12, color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => SupermarketDetailScreen(supermarket: supermarket),
+                                          ),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF4F46E5),
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        minimumSize: const Size(80, 36),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      const CircleAvatar(
-                                        radius: 12,
-                                        backgroundColor: Color(0xFF2196F3),
-                                        child: Icon(Icons.store, size: 14, color: Colors.white),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF4F46E5),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      minimumSize: const Size(80, 36),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
+                                      child: const Text('Ver Ofertas', style: TextStyle(fontSize: 11)),
                                     ),
-                                    child: const Text('Ir à loja', style: TextStyle(fontSize: 12)),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ],
                           ),
