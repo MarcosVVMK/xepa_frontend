@@ -29,4 +29,16 @@ class SupermarketService {
       return [];
     }
   }
+
+  Future<List<dynamic>> searchSupermarkets(String query) async {
+    try {
+      final response = await apiClient.dio.get('/supermarket/search?name=$query');
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      return [];
+    } on DioException {
+      return [];
+    }
+  }
 }

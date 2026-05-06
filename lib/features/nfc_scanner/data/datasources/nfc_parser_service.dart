@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:dio/dio.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
@@ -54,6 +55,9 @@ class NfcParserService {
       );
 
       final data = response.data;
+
+      dev.debugger(); 
+      
       return _mapResponseToInvoice(data, cleaned);
     } on DioException catch (e, stack) {
       dev.log('DioException ao consultar NFC-e', error: e, stackTrace: stack);
@@ -118,8 +122,8 @@ class NfcParserService {
     final invoiceInfo = data['informacoes_nota'] as Map<String, dynamic>? ?? {};
     final invoiceData = data['nfe'] as Map<String, dynamic>? ?? {};
 
-    final establishmentName = issuer['nome_fantasia'] as String?
-        ?? issuer['nome'] as String?
+    final establishmentName = issuer['nome'] as String?
+        ?? issuer['nome_fantasia'] as String?
         ?? issuer['nome_razao_social'] as String?
         ?? issuer['razao_social'] as String?
         ?? 'Estabelecimento';
@@ -128,19 +132,29 @@ class NfcParserService {
     final addressStr = issuer['endereco'] as String?;
     
     NfcInvoiceAddress? address;
-    if (issuer.containsKey('bairro') && issuer.containsKey('municipio')) {
-      String? street = addressStr;
+    if (issuer.containsKey('endereco')) {
+      String? street;
       String? number;
       String? complement;
-      
-      if (addressStr != null) {
-        final parts = addressStr.split(',').map((s) => s.trim()).toList();
-        if (parts.isNotEmpty) street = parts[0];
-        if (parts.length > 1) number = parts[1];
-        if (parts.length > 2) complement = parts[2] == '.' ? null : parts[2];
-      }
-      
+      String? neighborhood = issuer['bairro'] as String?;
       String? city = issuer['municipio'] as String?;
+      String? uf = issuer['uf'] as String?;
+      String? zipCode = issuer['cep'] as String?;
+
+      if (addressStr != null) {
+        if (addressStr.contains(',')) {
+          final parts = addressStr.split(',');
+          street = parts[0].trim();
+          number = parts[1].trim();
+          if (parts.length > 2) {
+            complement = parts.sublist(2).join(', ').trim();
+          }
+        } else {
+          street = addressStr.trim();
+          number = 'SN';
+        }
+      }
+
       if (city != null && city.contains('-')) {
         city = city.split('-').last.trim();
       }
@@ -162,7 +176,6 @@ class NfcParserService {
     DateTime emissionDate;
     try {
       if (emissionDateStr != null) {
-        // Formatos: "16/03/2026" ou "16/03/2026 11:47:38-03:00"
         final datePart = emissionDateStr.split(' ')[0];
         emissionDate = datePart.contains('/') 
             ? DateTime.parse(datePart.split('/').reversed.join('-'))

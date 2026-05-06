@@ -37,7 +37,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     try {
       final tokenStorage = getIt<TokenStorage>();
       final userJson = await tokenStorage.getUser();
-      
+
       if (userJson != null) {
         final user = UserModel.fromJson(jsonDecode(userJson));
         if (user.address?.latitude != null && user.address?.longitude != null) {
@@ -64,7 +64,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  Future<void> _searchProducts(String query) async {
+  Future<void> _searchSupermarkets(String query) async {
     if (query.trim().isEmpty) {
       setState(() {
         _searchResults = [];
@@ -77,8 +77,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
 
     try {
-      final productService = getIt<ProductService>();
-      final results = await productService.searchProducts(query);
+      final supermarketService = getIt<SupermarketService>();
+      final results = await supermarketService.searchSupermarkets(query);
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -164,9 +164,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
                 child: TextField(
                   controller: _searchController,
-                  onSubmitted: _searchProducts,
+                  onSubmitted: _searchSupermarkets,
                   decoration: InputDecoration(
-                    hintText: 'Buscar produtos...',
+                    hintText: 'Buscar por Supermercado...',
                     hintStyle: TextStyle(color: Colors.grey[400]),
                     prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF2196F3)),
                     border: InputBorder.none,
@@ -175,7 +175,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       icon: const Icon(Icons.clear_rounded, color: Colors.grey),
                       onPressed: () {
                         _searchController.clear();
-                        _searchProducts('');
+                        _searchSupermarkets('');
                       },
                     ),
                   ),
@@ -331,7 +331,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       ),
     );
   }
-
 
   Widget _buildSupermarketCard(BuildContext context, dynamic market) {
     return Container(
