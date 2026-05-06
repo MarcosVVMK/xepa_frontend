@@ -10,7 +10,12 @@ import 'package:xepa_frontend/features/nfc_scanner/presentation/pages/qr_scanner
 import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/explore_screen.dart';
 import 'package:xepa_frontend/features/profile/presentation/pages/profile_screen.dart';
 import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
+import 'package:xepa_frontend/features/product/data/models/product_model.dart';
+import 'package:xepa_frontend/features/product/data/models/product_price_model.dart';
 import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
+import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
+
+import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -23,11 +28,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   UserModel? _user;
   bool _isLoading = true;
   int _currentNavIndex = 0;
-  List<dynamic> _cheapestProducts = [];
+  List<ProductPrice> _cheapestProducts = [];
   bool _isLoadingProducts = true;
-  List<dynamic> _closestProducts = [];
+  List<ProductPrice> _closestProducts = [];
   bool _isLoadingClosestProducts = true;
-  List<dynamic> _closestSupermarkets = [];
+  List<SupermarketModel> _closestSupermarkets = [];
   bool _isLoadingSupermarkets = true;
 
   @override
@@ -194,11 +199,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           itemCount: _cheapestProducts.length,
                           itemBuilder: (context, index) {
                             final item = _cheapestProducts[index];
-                            final product = item['product'];
-                            final supermarket = item['supermarket'];
-                            final price = item['price'];
-                            
-                            return _buildProductCard(product, supermarket, price);
+                            return _buildProductCard(item.product, item.supermarket, item.price);
                           },
                         ),
                       ),
@@ -238,11 +239,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           itemCount: _closestProducts.length,
                           itemBuilder: (context, index) {
                             final item = _closestProducts[index];
-                            final product = item['product'];
-                            final supermarket = item['supermarket'];
-                            final price = item['price'];
-                            
-                            return _buildProductCard(product, supermarket, price);
+                            return _buildProductCard(item.product, item.supermarket, item.price);
                           },
                         ),
                       ),
@@ -294,7 +291,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStoryItem(dynamic market) {
+  Widget _buildStoryItem(SupermarketModel market) {
     return Container(
       width: 80,
       margin: const EdgeInsets.symmetric(horizontal: 6),
@@ -338,7 +335,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            market['name'] ?? 'Mercado',
+            market.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
@@ -353,60 +350,70 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildProductCard(dynamic product, dynamic supermarket, dynamic price) {
-    return Container(
-      width: 160,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+  Widget _buildProductCard(ProductModel product, SupermarketModel supermarket, double price) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(product: product),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
+        );
+      },
+      child: Container(
+        width: 160,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey[200]!),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-            child: const Center(
-              child: Icon(Icons.shopping_bag_outlined, color: Colors.grey),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Icon(Icons.shopping_bag_outlined, color: Colors.grey),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            product['name'] ?? '',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-          ),
-          const Spacer(),
-          Text(
-            supermarket['name'] ?? '',
-            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Color(0xFF4CAF50),
+            const SizedBox(height: 12),
+            Text(
+              product.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
-          ),
-        ],
+            const Spacer(),
+            Text(
+              supermarket.name,
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Color(0xFF4CAF50),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

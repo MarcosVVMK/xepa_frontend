@@ -3,7 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import 'package:xepa_frontend/features/shopping_list/data/datasources/shopping_list_service.dart';
+import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_model.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list.dart';
+
 import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
+import 'package:xepa_frontend/features/product/data/models/product_model.dart';
+import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
 
 class ListDetailScreen extends StatefulWidget {
   final String listName;
@@ -19,7 +24,7 @@ class ListDetailScreen extends StatefulWidget {
 }
 
 class _ListDetailScreenState extends State<ListDetailScreen> {
-  List<dynamic> _items = [];
+  ShoppingListModel? _list;
   bool _isLoading = true;
 
   @override
@@ -35,7 +40,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
       final list = await service.getShoppingListById(widget.listId);
       if (mounted) {
         setState(() {
-          _items = list != null ? (list['shoppingListItems'] ?? []) : [];
+          _list = list;
           _isLoading = false;
         });
       }
@@ -45,31 +50,25 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     }
   }
 
-  double get _total => _items.fold(0, (sum, item) {
-    final qty = (item['quantity'] ?? 0).toDouble();
-    final price = (item['price'] ?? 0).toDouble();
-    return sum + (qty * price);
-  });
+  double get _total => _list?.total ?? 0;
 
-  int get _totalItems => _items.fold(
-    0,
-    (sum, item) => sum + ((item['quantity'] ?? 0).toInt() as int),
-  );
+  int get _totalItems => _list?.itemCount ?? 0;
 
   Future<void> _removeItem(int index) async {
-    final itemId = _items[index]['id'];
+    final item = _list?.items?[index];
+    if (item == null) return;
+    
     try {
       final service = getIt<ShoppingListService>();
-      await service.removeItemFromList(widget.listId, itemId);
+      await service.removeItemFromList(widget.listId, item.id!);
       await _loadList();
     } catch (e, stackTrace) {
       dev.log('Erro ao remover item da lista', error: e, stackTrace: stackTrace);
-      // Falha silenciosa ao remover item
     }
   }
 
   Future<void> _showEditNameDialog() async {
-    final controller = TextEditingController(text: widget.listName);
+    final controller = TextEditingController(text: _list?.name ?? widget.listName);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -92,7 +91,8 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                 await service.updateShoppingList(widget.listId, {
                   'name': newName,
                 });
-                if (mounted) Navigator.pop(ctx);
+                if (!mounted) return;
+                Navigator.pop(ctx);
                 _loadList();
               }
             },
@@ -120,10 +120,9 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
             onPressed: () async {
               final service = getIt<ShoppingListService>();
               await service.deleteShoppingList(widget.listId);
-              if (mounted) {
-                Navigator.pop(ctx);
-                Navigator.pop(context);
-              }
+              if (!mounted) return;
+              Navigator.pop(ctx);
+              Navigator.pop(context);
             },
             child: const Text('Apagar', style: TextStyle(color: Colors.red)),
           ),
@@ -185,7 +184,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                             GestureDetector(
                               onTap: _showEditNameDialog,
                               child: Text(
-                                widget.listName,
+                                _list?.name ?? widget.listName,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 17,
@@ -253,13 +252,13 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _items.isEmpty
+                  : (_list?.items?.isEmpty ?? true)
                   ? _buildEmptyState()
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
-                      itemCount: _items.length,
+                      itemCount: _list!.items!.length,
                       itemBuilder: (context, index) =>
-                          _buildItemCard(_items[index], index),
+                          _buildItemCard(_list!.items![index], index),
                     ),
             ),
             // Add product button
@@ -320,103 +319,117 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     );
   }
 
-  Widget _buildItemCard(dynamic item, int index) {
-    final name = item['productName'] ?? 'Produto';
-    final qty = (item['quantity'] ?? 0).toInt();
-    final price = (item['price'] ?? 0).toDouble();
+  Widget _buildItemCard(ShoppingListItem item, int index) {
+    final name = item.productName ?? 'Produto';
+    final qty = item.quantity;
+    final price = item.price ?? 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Image placeholder
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(10),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(
+              product: ProductModel(
+                id: item.productId,
+                name: name,
+              ),
             ),
-            child: const Icon(Icons.shopping_bag_outlined, color: Colors.grey),
           ),
-          const SizedBox(width: 12),
-          // Name & price
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Image placeholder
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.shopping_bag_outlined, color: Colors.grey),
+            ),
+            const SizedBox(width: 12),
+            // Name & price
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F2937),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFEF5350),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Quantity controls
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  qty % 1 == 0 ? qty.toInt().toString() : qty.toStringAsFixed(2),
                   style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                     color: Color(0xFF1F2937),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFEF5350),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Quantity controls
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                '$qty',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Delete
-          InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () => _removeItem(index),
-            child: const Padding(
-              padding: EdgeInsets.all(4),
-              child: Icon(
-                Icons.delete_outline_rounded,
-                color: Color(0xFFEF5350),
-                size: 24,
+            const SizedBox(width: 8),
+            // Delete
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => _removeItem(index),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFEF5350),
+                  size: 24,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-
 }
 
 class _AddProductSheet extends StatefulWidget {
@@ -430,7 +443,7 @@ class _AddProductSheet extends StatefulWidget {
 class _AddProductSheetState extends State<_AddProductSheet> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  List<dynamic> _searchResults = [];
+  List<ProductModel> _searchResults = [];
   bool _isLoading = false;
   bool _isAdding = false;
 
@@ -559,10 +572,18 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                         final p = _searchResults[index];
                         return ListTile(
                           leading: const Icon(Icons.shopping_bag_outlined),
-                          title: Text(p['name'] ?? ''),
+                          title: Text(p.name),
                           subtitle: Text(
-                            '${p['brand'] ?? ''} • ${p['unitMeasure'] ?? ''}',
+                            '${p.brand ?? ''} • ${p.unitMeasure ?? ''}',
                           ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductDetailScreen(product: p),
+                              ),
+                            );
+                          },
                           trailing: _isAdding
                               ? const SizedBox(
                                   width: 20,
@@ -588,14 +609,14 @@ class _AddProductSheetState extends State<_AddProductSheet> {
     );
   }
 
-  Future<void> _showQuantityDialog(dynamic product) async {
+  Future<void> _showQuantityDialog(ProductModel product) async {
     final controller = TextEditingController(text: '1');
-    final unit = product['unitMeasure'] ?? 'UNIDADE';
+    final unit = product.unitMeasure ?? 'UNIDADE';
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Adicionar ${product['name']}'),
+        title: Text('Adicionar ${product.name}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -625,7 +646,7 @@ class _AddProductSheetState extends State<_AddProductSheet> {
               final qty =
                   double.tryParse(controller.text.replaceAll(',', '.')) ?? 1.0;
               Navigator.pop(ctx);
-              _addProduct(product['id'], qty);
+              _addProduct(product.id!, qty);
             },
             child: const Text('Adicionar'),
           ),

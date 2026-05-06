@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import 'package:xepa_frontend/features/shopping_list/data/datasources/shopping_list_service.dart';
+import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_model.dart';
 import 'list_detail_screen.dart';
 
 class ListsScreen extends StatefulWidget {
@@ -11,7 +12,7 @@ class ListsScreen extends StatefulWidget {
 }
 
 class _ListsScreenState extends State<ListsScreen> {
-  List<dynamic> _lists = [];
+  List<ShoppingListModel> _lists = [];
   bool _isLoading = true;
 
   @override
@@ -198,14 +199,13 @@ class _ListsScreenState extends State<ListsScreen> {
     );
   }
 
-  Widget _buildListCard(dynamic list) {
-    // Parse values safely
-    final String name = list['name'] ?? 'Lista';
-    final int itemCount = list['itemCount'] ?? 0;
-    final double total = (list['total'] ?? 0).toDouble();
+  Widget _buildListCard(ShoppingListModel list) {
+    final String name = list.name;
+    final int itemCount = list.itemCount ?? 0;
+    final double total = list.total ?? 0;
 
     // Convert hex color to Color object
-    String colorString = list['color'] ?? '#2196F3';
+    String colorString = list.color ?? '#2196F3';
     colorString = colorString.replaceAll('#', '');
     if (colorString.length == 6) {
       colorString = 'FF$colorString';
@@ -224,7 +224,7 @@ class _ListsScreenState extends State<ListsScreen> {
               context,
               MaterialPageRoute(
                 builder: (_) =>
-                    ListDetailScreen(listName: name, listId: list['id']),
+                    ListDetailScreen(listName: name, listId: list.id!),
               ),
             ).then((_) => _loadLists());
           },

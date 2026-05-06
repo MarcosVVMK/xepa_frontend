@@ -23,8 +23,8 @@ class AuthRepositoryImpl implements IAuthRepository {
     try {
       final result = await remoteDataSource.login(email, password);
       
-      final token = result['token'] as String?;
-      final user = result['user'] as UserModel;
+      final token = result.token;
+      final user = result.user;
 
       if (token != null && token.isNotEmpty) {
         await tokenStorage.saveToken(token);
@@ -57,8 +57,8 @@ class AuthRepositoryImpl implements IAuthRepository {
         phone: phone,
       );
       
-      final token = result['token'] as String?;
-      final user = result['user'] as UserModel;
+      final token = result.token;
+      final user = result.user;
 
       if (token != null && token.isNotEmpty) {
         await tokenStorage.saveToken(token);

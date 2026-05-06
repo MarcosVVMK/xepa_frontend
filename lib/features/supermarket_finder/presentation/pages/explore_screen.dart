@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
+import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
 import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
 import 'package:xepa_frontend/core/auth/token_storage.dart';
 import 'dart:convert';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
+import 'package:xepa_frontend/features/product/data/models/product_model.dart';
+import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
+import 'package:xepa_frontend/features/profile/domain/entities/address.dart';
+
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -15,11 +22,13 @@ class ExploreScreen extends StatefulWidget {
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> {
+class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
-  List<dynamic> _searchResults = [];
+  late TabController _tabController;
+  List<SupermarketModel> _supermarketResults = [];
+  List<ProductModel> _productResults = [];
   bool _isLoading = false;
-  final List<dynamic> _supermarkets = [];
+  final List<SupermarketModel> _supermarkets = [];
   bool _showMap = false;
   LatLng? _userLocation;
   final MapController _mapController = MapController();
@@ -27,7 +36,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadClosestSupermarkets();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadClosestSupermarkets() async {
@@ -65,33 +82,51 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  Future<void> _searchSupermarkets(String query) async {
+  Future<void> _handleSearch(String query) async {
     if (query.trim().isEmpty) {
       setState(() {
-        _searchResults = [];
+        _supermarketResults = [];
+        _productResults = [];
       });
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (_tabController.index == 0) {
+      await _searchSupermarkets(query);
+    } else {
+      await _searchProducts(query);
+    }
+  }
 
+  Future<void> _searchSupermarkets(String query) async {
+    setState(() => _isLoading = true);
     try {
       final supermarketService = getIt<SupermarketService>();
       final results = await supermarketService.searchSupermarkets(query);
       if (mounted) {
         setState(() {
-          _searchResults = results;
+          _supermarketResults = results;
           _isLoading = false;
         });
       }
     } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _searchProducts(String query) async {
+    setState(() => _isLoading = true);
+    try {
+      final productService = getIt<ProductService>();
+      final results = await productService.searchProducts(query);
       if (mounted) {
         setState(() {
+          _productResults = results;
           _isLoading = false;
         });
       }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -111,7 +146,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+              padding: const EdgeInsets.fromLTRB(20, 14, 16, 0),
               decoration:  const BoxDecoration(
                 color: Color(0xFF2196F3),
                 borderRadius: BorderRadius.only(
@@ -119,42 +154,59 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   bottomRight: Radius.circular(20),
                 ),
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  const Icon(Icons.location_on_rounded,
-                      color: Colors.white, size: 26),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Explorar',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_rounded,
+                          color: Colors.white, size: 26),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Explorar',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Mercados e Produtos',
+                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Mercados próximos',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
-                        ),
-                      ],
-                    ),
+                      ),
+                      IconButton(
+                        icon: Icon(_showMap ? Icons.list_rounded : Icons.map_rounded),
+                        color: Colors.white,
+                        onPressed: () {
+                          setState(() {
+                            _showMap = !_showMap;
+                          });
+                        },
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(_showMap ? Icons.list_rounded : Icons.map_rounded),
-                    color: Colors.white,
-                    onPressed: () {
-                      setState(() {
-                        _showMap = !_showMap;
-                      });
-                    },
+                  const SizedBox(height: 8),
+                  TabBar(
+                    controller: _tabController,
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    tabs: const [
+                      Tab(text: 'Mercados'),
+                      Tab(text: 'Produtos'),
+                    ],
                   ),
                 ],
               ),
             ),
+
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Container(
@@ -172,9 +224,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
                 child: TextField(
                   controller: _searchController,
-                  onSubmitted: _searchSupermarkets,
+                  onSubmitted: _handleSearch,
                   decoration: InputDecoration(
-                    hintText: 'Buscar por Supermercado...',
+                    hintText: 'Buscar...',
                     hintStyle: TextStyle(color: Colors.grey[400]),
                     prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF2196F3)),
                     border: InputBorder.none,
@@ -183,74 +235,97 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       icon: const Icon(Icons.clear_rounded, color: Colors.grey),
                       onPressed: () {
                         _searchController.clear();
-                        _searchSupermarkets('');
+                        _handleSearch('');
                       },
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Row(
-                children:  [
-                  Text(
-                    _searchResults.isEmpty ? 'Mercados próximos' : 'Resultados da busca',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    _searchResults.isEmpty ? '${_supermarkets.length} encontrados' : '${_searchResults.length} mercados',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[400]),
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 8),
             Expanded(
               child: _isLoading 
                 ? const Center(child: CircularProgressIndicator())
-                : _searchResults.isNotEmpty
-                    ? ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: _searchResults.length,
-                        itemBuilder: (context, index) => _buildSupermarketCard(context, _searchResults[index]),
-                      )
-                    : _showMap
-                        ? _buildMapView()
-                        : _supermarkets.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.store_outlined, size: 80, color: Colors.grey[300]) ,
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Nenhum mercado encontrado',
-                                    style: TextStyle(fontSize: 18, color: Colors.grey[500], fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Verifique sua localização',
-                                    style:TextStyle(fontSize: 14, color: Colors.grey[400]),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // Markets Tab
+                      _supermarketResults.isNotEmpty
+                          ? ListView.builder(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: _supermarkets.length,
-                              itemBuilder: (context, index) =>
-                                  _buildSupermarketCard(context, _supermarkets[index]),
-                            ),
+                              itemCount: _supermarketResults.length,
+                              itemBuilder: (context, index) => _buildSupermarketCard(context, _supermarketResults[index]),
+                            )
+                          : _showMap
+                              ? _buildMapView()
+                              : _supermarkets.isEmpty
+                                ? _buildEmptyState('Nenhum mercado encontrado')
+                                : ListView.builder(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    itemCount: _supermarkets.length,
+                                    itemBuilder: (context, index) =>
+                                        _buildSupermarketCard(context, _supermarkets[index]),
+                                  ),
+                      
+                      // Products Tab
+                      _productResults.isNotEmpty
+                          ? ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: _productResults.length,
+                              itemBuilder: (context, index) => _buildProductListTile(_productResults[index]),
+                            )
+                          : _buildEmptyState('Nenhum produto encontrado'),
+                    ],
+                  ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_off_rounded, size: 80, color: Colors.grey[200]),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(fontSize: 16, color: Colors.grey[500], fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductListTile(ProductModel product) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.shopping_bag_outlined, color: Colors.grey),
+      ),
+      title: Text(
+        product.name,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text('${product.brand ?? ''} • ${product.unitMeasure ?? ''}'),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(product: product),
+          ),
+        );
+      },
     );
   }
 
@@ -262,6 +337,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         initialCenter: center,
         initialZoom: 14.0,
       ),
+      mapController: _mapController,
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -280,9 +356,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   size: 40,
                 ),
               ),
-            ..._supermarkets.where((s) => s['address']?['latitude'] != null).map((s) {
+            ..._supermarkets.where((s) => s.address?.latitude != null).map((s) {
               return Marker(
-                point: LatLng(s['address']['latitude'], s['address']['longitude']),
+                point: LatLng(s.address!.latitude!, s.address!.longitude!),
                 width: 40,
                 height: 40,
                 child: GestureDetector(
@@ -300,8 +376,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ],
         ),
       ],
-      mapController: _mapController,
     );
+
   }
 
   void _showOnMap(double lat, double lng) {
@@ -317,7 +393,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
   }
 
-  Widget _buildSupermarketCard(BuildContext context, dynamic market) {
+  Widget _buildSupermarketCard(BuildContext context, SupermarketModel market) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -349,7 +425,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  market['name'] ?? 'Mercado',
+                  market.name,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -366,13 +442,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   size: 14, color: Colors.grey[400]),
               const SizedBox(width: 4),
               Text(
-                'Aprox. ${market['distance']?.toStringAsFixed(1) ?? '??'} km',
+                'Aprox. ${market.distance?.toStringAsFixed(1) ?? '??'} km',
                 style: TextStyle(fontSize: 13, color: Colors.grey[500]),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  _formatAddress(market['address']),
+                  _formatAddress(market.address),
                   style: TextStyle(fontSize: 13, color: Colors.grey[400]),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -384,8 +460,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                final lat = market['address']?['latitude'];
-                final lng = market['address']?['longitude'];
+                final lat = market.address?.latitude;
+                final lng = market.address?.longitude;
                 if (lat != null && lng != null) {
                   _showOnMap(lat, lng);
                 } else {
@@ -395,10 +471,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 }
               },
               onLongPress: () {
-                 final lat = market['address']?['latitude'];
-                final lng = market['address']?['longitude'];
+                 final lat = market.address?.latitude;
+                final lng = market.address?.longitude;
                 if (lat != null && lng != null) {
-                  _openExternalMap(lat, lng, market['name'] ?? 'Mercado');
+                  _openExternalMap(lat, lng, market.name);
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -421,12 +497,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  String _formatAddress(Map<String, dynamic>? address) {
+  String _formatAddress(Address? address) {
     if (address == null) return 'Endereço não disponível';
     
-    final street = address['street'] ?? '';
-    final number = address['number'] ?? '';
-    final neighborhood = address['neighborhood'] ?? '';
+    final street = address.street;
+    final number = address.number;
+    final neighborhood = address.neighborhood;
+
     
     if (street.isEmpty) return 'Endereço incompleto';
     
@@ -436,4 +513,5 @@ class _ExploreScreenState extends State<ExploreScreen> {
     
     return formatted;
   }
+
 }

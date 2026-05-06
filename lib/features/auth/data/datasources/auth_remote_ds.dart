@@ -1,6 +1,6 @@
 import 'dart:developer' as dev;
 import 'package:xepa_frontend/core/api/api_client.dart';
-import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
+import 'package:xepa_frontend/features/auth/data/models/auth_response_model.dart';
 import 'package:dio/dio.dart';
 
 class AuthRemoteDataSource {
@@ -8,7 +8,7 @@ class AuthRemoteDataSource {
 
   AuthRemoteDataSource(this.apiClient);
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<AuthResponseModel> login(String email, String password) async {
     try {
       final response = await apiClient.dio.post(
         '/login',
@@ -18,13 +18,7 @@ class AuthRemoteDataSource {
         },
       );
 
-      final token = response.data['access_token'] as String?;
-      final userModel = UserModel.fromJson(response.data['user'] ?? {});
-      
-      return {
-        'token': token,
-        'user': userModel,
-      };
+      return AuthResponseModel.fromJson(response.data);
     } on DioException catch (e, stackTrace) {
       dev.log('DioException no login', error: e, stackTrace: stackTrace);
       final message = _extractErrorMessage(e);
@@ -32,7 +26,7 @@ class AuthRemoteDataSource {
     }
   }
 
-  Future<Map<String, dynamic>> register({
+  Future<AuthResponseModel> register({
     required String firstName,
     required String lastName,
     required String cpf,
@@ -53,13 +47,7 @@ class AuthRemoteDataSource {
         },
       );
 
-      final token = response.data['access_token'] as String?;
-      final userModel = UserModel.fromJson(response.data['user'] ?? {});
-
-      return {
-        'token': token,
-        'user': userModel,
-      };
+      return AuthResponseModel.fromJson(response.data);
     } on DioException catch (e, stackTrace) {
       dev.log('DioException no registro', error: e, stackTrace: stackTrace);
       final message = _extractErrorMessage(e);

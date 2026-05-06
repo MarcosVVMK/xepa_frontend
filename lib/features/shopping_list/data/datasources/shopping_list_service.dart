@@ -1,16 +1,18 @@
 import 'package:dio/dio.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
+import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_model.dart';
 
 class ShoppingListService {
   final ApiClient apiClient;
 
   ShoppingListService(this.apiClient);
 
-  Future<List<dynamic>> getShoppingLists() async {
+  Future<List<ShoppingListModel>> getShoppingLists() async {
     try {
       final response = await apiClient.dio.get('/shopping-lists');
       if (response.statusCode == 200) {
-        return response.data as List<dynamic>;
+        final List data = response.data;
+        return data.map((json) => ShoppingListModel.fromJson(json)).toList();
       }
       return [];
     } on DioException {
@@ -18,11 +20,11 @@ class ShoppingListService {
     }
   }
 
-  Future<dynamic> getShoppingListById(int id) async {
+  Future<ShoppingListModel?> getShoppingListById(int id) async {
     try {
       final response = await apiClient.dio.get('/shopping-lists/$id');
       if (response.statusCode == 200) {
-        return response.data;
+        return ShoppingListModel.fromJson(response.data);
       }
       return null;
     } on DioException {
@@ -30,7 +32,7 @@ class ShoppingListService {
     }
   }
 
-  Future<dynamic> createShoppingList(String name) async {
+  Future<ShoppingListModel?> createShoppingList(String name) async {
     try {
       final response = await apiClient.dio.post(
         '/shopping-lists',
@@ -40,7 +42,7 @@ class ShoppingListService {
         },
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return response.data;
+        return ShoppingListModel.fromJson(response.data);
       }
       return null;
     } on DioException {
@@ -57,7 +59,7 @@ class ShoppingListService {
     }
   }
 
-  Future<dynamic> addItemToList(int listId, int productId, double quantity, String notes) async {
+  Future<ShoppingListItemModel?> addItemToList(int listId, int productId, double quantity, String notes) async {
     try {
       final response = await apiClient.dio.post(
         '/shopping-lists/$listId/items',
@@ -68,7 +70,7 @@ class ShoppingListService {
         },
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return response.data;
+        return ShoppingListItemModel.fromJson(response.data);
       }
       return null;
     } on DioException {
@@ -85,11 +87,11 @@ class ShoppingListService {
     }
   }
 
-  Future<dynamic> updateShoppingList(int id, Map<String, dynamic> updates) async {
+  Future<ShoppingListModel?> updateShoppingList(int id, Map<String, dynamic> updates) async {
     try {
       final response = await apiClient.dio.patch('/shopping-lists/$id', data: updates);
       if (response.statusCode == 200) {
-        return response.data;
+        return ShoppingListModel.fromJson(response.data);
       }
       return null;
     } on DioException {

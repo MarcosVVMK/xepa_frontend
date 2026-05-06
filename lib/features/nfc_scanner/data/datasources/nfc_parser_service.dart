@@ -34,7 +34,8 @@ class NfcParserService {
     } on DioException catch (e, stackTrace) {
       dev.log('Erro ao salvar NFC-e', error: e, stackTrace: stackTrace);
       if (e.response != null && e.response!.data is Map) {
-        throw Exception(e.response!.data['error'] ?? 'Erro ao salvar dados da nota');
+        final data = e.response!.data as Map;
+        throw Exception(data['error'] ?? 'Erro ao salvar dados da nota');
       }
       throw Exception('Erro de conexão ao salvar nota');
     }
@@ -53,13 +54,14 @@ class NfcParserService {
         data: {'chave_acesso': cleaned},
       );
 
-      final data = response.data;
+      final data = response.data as Map<String, dynamic>;
       
       return _mapResponseToInvoice(data, cleaned);
     } on DioException catch (e, stack) {
       dev.log('DioException ao consultar NFC-e', error: e, stackTrace: stack);
       if (e.response != null && e.response!.data is Map) {
-        final errorMsg = e.response!.data['error'] ?? 'Erro desconhecido';
+        final data = e.response!.data as Map;
+        final errorMsg = data['error'] ?? 'Erro desconhecido';
         throw Exception(errorMsg);
       }
       throw Exception('Erro de conexão com o servidor: ${e.type} - ${e.message}');
@@ -68,6 +70,7 @@ class NfcParserService {
       rethrow;
     }
   }
+
 
   Future<NfcInvoice> parseUrl(String url) async {
     try {
