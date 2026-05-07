@@ -15,7 +15,7 @@ class ShoppingListService {
         return data.map((json) => ShoppingListModel.fromJson(json)).toList();
       }
       return [];
-    } on DioException {
+    } on DioException catch (e) {
       return [];
     }
   }
@@ -27,7 +27,7 @@ class ShoppingListService {
         return ShoppingListModel.fromJson(response.data);
       }
       return null;
-    } on DioException {
+    } on DioException catch (e) {
       return null;
     }
   }
@@ -45,7 +45,7 @@ class ShoppingListService {
         return ShoppingListModel.fromJson(response.data);
       }
       return null;
-    } on DioException {
+    } on DioException catch (e) {
       return null;
     }
   }
@@ -54,7 +54,7 @@ class ShoppingListService {
     try {
       final response = await apiClient.dio.delete('shopping-lists/$id');
       return response.statusCode == 200 || response.statusCode == 204;
-    } on DioException {
+    } on DioException catch (e) {
       return false;
     }
   }
@@ -73,7 +73,7 @@ class ShoppingListService {
         return ShoppingListItemModel.fromJson(response.data);
       }
       return null;
-    } on DioException {
+    } on DioException catch (e) {
       return null;
     }
   }
@@ -82,7 +82,7 @@ class ShoppingListService {
     try {
       final response = await apiClient.dio.delete('shopping-lists/$listId/items/$itemId');
       return response.statusCode == 200 || response.statusCode == 204;
-    } on DioException {
+    } on DioException catch (e) {
       return false;
     }
   }
@@ -94,7 +94,7 @@ class ShoppingListService {
         return ShoppingListModel.fromJson(response.data);
       }
       return null;
-    } on DioException {
+    } on DioException catch (e) {
       return null;
     }
   }

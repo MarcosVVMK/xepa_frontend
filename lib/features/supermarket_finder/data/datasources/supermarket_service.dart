@@ -51,7 +51,7 @@ class SupermarketService {
 
   Future<List<ProductPrice>> getSupermarketProducts(int supermarketId) async {
     try {
-      final response = await apiClient.dio.get('supermarket/$supermarketId/products');
+      final response = await apiClient.dio.get('product/supermarket/$supermarketId');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => ProductPrice.fromJson(json)).toList();

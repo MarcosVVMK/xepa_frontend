@@ -20,9 +20,9 @@ class ProductPrice extends Equatable {
       product: ProductModel.fromJson(json['product']),
       supermarket: SupermarketModel.fromJson(json['supermarket']),
       price: (json['price'] as num).toDouble(),
-      priceUpdatedAt: json['priceUpdatedAt'] != null
-          ? DateTime.tryParse(json['priceUpdatedAt'])
-          : null,
+      priceUpdatedAt: json['lastPurchaseDate'] != null
+          ? DateTime.tryParse(json['lastPurchaseDate'])
+          : (json['priceUpdatedAt'] != null ? DateTime.tryParse(json['priceUpdatedAt']) : null),
     );
   }
 

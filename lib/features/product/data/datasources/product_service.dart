@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
 import 'package:xepa_frontend/features/product/data/models/product_model.dart';
@@ -21,7 +22,7 @@ class ProductService {
         return data.map((json) => ProductModel.fromJson(json)).toList();
       }
       return [];
-    } on DioException {
+    } on DioException catch (e) {
       return [];
     }
   }
@@ -34,7 +35,7 @@ class ProductService {
         return data.map((json) => ProductPrice.fromJson(json)).toList();
       }
       return [];
-    } on DioException {
+    } on DioException catch (e) {
       return [];
     }
   }
@@ -47,7 +48,7 @@ class ProductService {
         return data.map((json) => ProductPrice.fromJson(json)).toList();
       }
       return [];
-    } on DioException {
+    } on DioException catch (e) {
       return [];
     }
   }
@@ -67,7 +68,7 @@ class ProductService {
         return data.map((json) => ProductModel.fromJson(json)).toList();
       }
       return [];
-    } on DioException {
+    } on DioException catch (e) {
       return [];
     }
   }
@@ -80,7 +81,7 @@ class ProductService {
         return data.map((json) => ProductPrice.fromJson(json)).toList();
       }
       return [];
-    } on DioException {
+    } on DioException catch (e) {
       return [];
     }
   }

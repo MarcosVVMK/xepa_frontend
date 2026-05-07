@@ -12,10 +12,7 @@ class AuthRemoteDataSource {
     try {
       final response = await apiClient.dio.post(
         '/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
 
       return AuthResponseModel.fromJson(response.data);
@@ -72,10 +69,10 @@ class AuthRemoteDataSource {
         if (data['detail'] is String) {
           return data['detail'];
         } else if (data['detail'] is List) {
-           final List errors = data['detail'];
-           if (errors.isNotEmpty && errors[0] is String) {
-             return errors[0];
-           }
+          final List errors = data['detail'];
+          if (errors.isNotEmpty && errors[0] is String) {
+            return errors[0];
+          }
         }
       }
     }

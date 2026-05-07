@@ -1,4 +1,3 @@
-import 'dart:developer' as dev;
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
@@ -58,7 +57,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     } catch (e, stackTrace) {
-      dev.log('Erro ao carregar supermercados mais próximos', error: e, stackTrace: stackTrace);
       if (mounted) {
         setState(() {
           _isLoadingSupermarkets = false;
@@ -78,7 +76,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     } catch (e, stackTrace) {
-      dev.log('Erro ao carregar produtos mais próximos', error: e, stackTrace: stackTrace);
       if (mounted) {
         setState(() {
           _isLoadingClosestProducts = false;
@@ -98,7 +95,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     } catch (e, stackTrace) {
-      dev.log('Erro ao carregar produtos mais baratos', error: e, stackTrace: stackTrace);
       if (mounted) {
         setState(() {
           _isLoadingProducts = false;
@@ -120,7 +116,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() => _isLoading = false);
       }
     } catch (e, stackTrace) {
-      dev.log('Erro ao carregar dados do usuário (dashboard)', error: e, stackTrace: stackTrace);
       if (mounted) setState(() => _isLoading = false);
     }
   }
