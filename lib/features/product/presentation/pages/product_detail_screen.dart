@@ -5,6 +5,7 @@ import 'package:xepa_frontend/features/product/data/models/product_model.dart';
 import 'package:xepa_frontend/features/product/data/models/product_price_model.dart';
 import 'package:xepa_frontend/features/shopping_list/data/datasources/shopping_list_service.dart';
 import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/supermarket_detail_screen.dart';
+import 'package:xepa_frontend/shared/widgets/price_freshness_badge.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ProductModel product;
@@ -338,10 +339,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         color: Color(0xFF1F2937),
                                       ),
                                     ),
-                                    Text(
-                                      'à vista',
-                                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                                    ),
+                                    const SizedBox(height: 4),
+                                    PriceFreshnessBadge(updatedAt: priceData.priceUpdatedAt),
                                   ],
                                 ),
                               ),

@@ -15,6 +15,7 @@ class NfcParserService {
       'cnpj': invoice.cnpj,
       'accessKey': invoice.accessKey,
       'totalValue': invoice.totalValue,
+      'purchaseDate': invoice.date.toIso8601String(),
       'address': invoice.address?.toJson(),
       'items': invoice.items.map((item) => {
         'name': item.name,
@@ -71,7 +72,6 @@ class NfcParserService {
     }
   }
 
-
   Future<NfcInvoice> parseUrl(String url) async {
     try {
       final accessKey = _extractKeyFromUrl(url);
@@ -115,69 +115,52 @@ class NfcParserService {
 
   NfcInvoice _mapResponseToInvoice(Map<String, dynamic> data, String accessKey) {
    try {
-    final issuer = data['emitente'] as Map<String, dynamic>? ?? {};
-    final products = data['produtos'] as List<dynamic>? ?? [];
-    final totals = data['totais'] as Map<String, dynamic>? ?? {};
-    final values = data['valores'] as Map<String, dynamic>? ?? {};
-    final invoiceInfo = data['informacoes_nota'] as Map<String, dynamic>? ?? {};
-    final invoiceData = data['nfe'] as Map<String, dynamic>? ?? {};
+    final entry = (data['data'] is List && (data['data'] as List).isNotEmpty)
+        ? data['data'][0] as Map<String, dynamic>
+        : data;
 
-    final establishmentName = issuer['nome'] as String?
-        ?? issuer['nome_fantasia'] as String?
-        ?? issuer['nome_razao_social'] as String?
-        ?? issuer['razao_social'] as String?
-        ?? 'Estabelecimento';
+    final issuer   = entry['emitente'] as Map<String, dynamic>? ?? {};
+    final products = entry['produtos']  as List<dynamic>? ?? [];
+    final totals   = entry['totais']    as Map<String, dynamic>? ?? {};
+    final nfe      = entry['nfe']       as Map<String, dynamic>? ?? {};
 
-    final cnpj = issuer['cnpj'] as String? ?? '';
+    final supermarketName = (issuer['nome'] as String?)?.isNotEmpty == true
+        ? issuer['nome'] as String
+        : (issuer['nome_fantasia'] as String?)?.isNotEmpty == true
+            ? issuer['nome_fantasia'] as String
+            : 'Estabelecimento';
+
+    final cnpj = (issuer['normalizado_cnpj'] as String?)?.isNotEmpty == true
+        ? issuer['normalizado_cnpj'] as String
+        : issuer['cnpj'] as String? ?? '';
     final addressStr = issuer['endereco'] as String?;
-    
     NfcInvoiceAddress? address;
-    if (issuer.containsKey('endereco')) {
-      String? street;
-      String? number;
-      String? complement;
+    if (addressStr != null && addressStr.trim().isNotEmpty) {
 
-      if (addressStr != null) {
-        if (addressStr.contains(',')) {
-          final parts = addressStr.split(',');
-          street = parts[0].trim();
-          number = parts[1].trim();
-          if (parts.length > 2) {
-            complement = parts.sublist(2).join(', ').trim();
-          }
-        } else {
-          street = addressStr.trim();
-          number = 'SN';
-        }
-      }
-
+      final parts = addressStr.split(',').map((s) => s.trim()).toList();
       String? city = issuer['municipio'] as String?;
 
       if (city != null && city.contains('-')) {
         city = city.split('-').last.trim();
       }
-
       address = NfcInvoiceAddress(
-        street: street,
-        number: number,
-        complement: complement,
-        neighborhood: issuer['bairro'] as String?,
-        city: city,
-        uf: issuer['uf'] as String?,
-        zipCode: issuer['cep'] as String?,
+        street:       parts.isNotEmpty ? parts[0] : null,
+        number:       parts.length > 1 ? parts[1] : null,
+        complement:   parts.length > 2 && parts[2] != '.' ? parts[2] : null,
+        neighborhood: issuer['bairro']  as String?,
+        city:         city,
+        uf:           issuer['uf']      as String?,
+        zipCode:      issuer['cep']     as String?,
       );
-    } else {
-      address = _parseAddress(addressStr);
     }
 
-    final emissionDateStr = invoiceInfo['data_emissao'] as String? ?? invoiceData['data_emissao'] as String?;
+    final emissionDateStr = nfe['data_emissao'] as String?;
     DateTime emissionDate;
     try {
       if (emissionDateStr != null) {
-        final datePart = emissionDateStr.split(' ')[0];
-        emissionDate = datePart.contains('/') 
-            ? DateTime.parse(datePart.split('/').reversed.join('-'))
-            : DateTime.parse(datePart);
+        final withoutTz = emissionDateStr.replaceAll(RegExp(r'[+-]\d{2}:\d{2}$'), '').trim();
+        final datePart  = withoutTz.split(' ')[0]; 
+        emissionDate = DateTime.parse(datePart.split('/').reversed.join('-'));
       } else {
         emissionDate = DateTime.now();
       }
@@ -187,41 +170,40 @@ class NfcParserService {
 
     final items = products.map((p) {
       final productData = p as Map<String, dynamic>;
-      final qty = _parseDouble(productData['qtd'] ?? productData['quantidade'] ?? productData['normalizado_quantidade']);
-      final tPrice = _parseDouble(productData['valor'] ?? productData['normalizado_valor'] ?? productData['valor_total'] ?? productData['valor_total_produto'] ?? productData['normalizado_valor_total_produto'] ?? productData['valor_produto']);
-      final uPrice = productData['valor_unitario'] != null || productData['normalizado_valor_unitario'] != null
-          ? _parseDouble(productData['valor_unitario'] ?? productData['normalizado_valor_unitario'])
-          : (qty > 0 ? tPrice / qty : tPrice);
 
+      final qty = _parseDouble(productData['qtd']);
+      
+      final tPrice = _parseDouble(
+        productData['normalizado_valor'] ?? productData['valor'],
+      );
+
+      final unitPrice = productData['valor_unitario_comercial'] != null
+          ? _parseDouble(productData['valor_unitario_comercial'])
+          : (qty > 0 ? tPrice / qty : tPrice);
       String? barcode;
-      if (productData['ean_comercial'] != null && productData['ean_comercial'] != 'SEM GTIN') {
-        barcode = productData['ean_comercial'] as String?;
-      } else if (productData['ean_tributavel'] != null && productData['ean_tributavel'] != 'SEM GTIN') {
-        barcode = productData['ean_tributavel'] as String?;
+      final eanComercial = productData['ean_comercial'] as String?;
+      final eanTributavel = productData['ean_tributavel'] as String?;
+      if (eanComercial != null && eanComercial != 'SEM GTIN') {
+        barcode = eanComercial;
+      } else if (eanTributavel != null && eanTributavel != 'SEM GTIN') {
+        barcode = eanTributavel;
       }
 
       return NfcInvoiceItem(
-        name: productData['descricao'] as String? ?? productData['nome'] as String? ?? 'Produto',
-        quantity: qty,
-        unit: productData['unidade'] as String? ?? productData['unidade_comercial'] as String? ?? 'UN',
-        unitPrice: uPrice,
+        name:       productData['descricao'] as String? ?? 'Produto',
+        quantity:   qty,
+        unit:       productData['unidade_comercial'] as String?
+                    ?? productData['unidade'] as String?
+                    ?? 'UN',
+        unitPrice:  unitPrice,
         totalPrice: tPrice,
-        barcode: barcode,
+        barcode:    barcode,
       );
     }).toList();
 
     var totalValue = _parseDouble(
-      values['total'] ??
-      invoiceData['valor_total'] ??
-      invoiceData['normalizado_valor_total'] ??
-      data['valor_total'] ?? 
-      data['valor_a_pagar'] ?? 
-      data['normalizado_valor_a_pagar'] ??
-      data['normalizado_valor_total'] ??
-      (data['valor'] != null && data['valor'] is Map ? data['valor']['total'] : null) ??
-      totals['valor_nfe'] ??
-      totals['valor_total'] ?? 
-      totals['valor_a_pagar']
+      totals['normalizado_valor_nfe'] ??
+      totals['valor_nfe'],
     );
 
     if (totalValue == 0.0 && items.isNotEmpty) {
@@ -229,7 +211,7 @@ class NfcParserService {
     }
 
     return NfcInvoice(
-      supermarketName: establishmentName,
+      supermarketName: supermarketName,
       cnpj: cnpj,
       date: emissionDate,
       accessKey: accessKey,
@@ -241,19 +223,6 @@ class NfcParserService {
      dev.log('Erro fatal no mapeamento do JSON', error: e, stackTrace: stack);
      rethrow;
    }
-  }
-
-  NfcInvoiceAddress? _parseAddress(String? addressStr) {
-    if (addressStr == null || addressStr.isEmpty) return null;
-    final parts = addressStr.split(',').map((s) => s.trim()).toList();
-    return NfcInvoiceAddress(
-      street: parts.isNotEmpty ? parts[0] : null,
-      number: parts.length > 1 ? parts[1] : null,
-      complement: parts.length > 2 ? (parts[2] == '.' ? null : parts[2]) : null,
-      neighborhood: parts.length > 3 ? parts[3] : null,
-      city: parts.length > 4 ? parts[4] : null,
-      uf: parts.length > 5 ? parts[5] : null,
-    );
   }
 
   double _parseDouble(dynamic value) {

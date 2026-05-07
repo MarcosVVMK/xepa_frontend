@@ -4,6 +4,7 @@ import 'package:xepa_frontend/features/product/data/models/product_price_model.d
 import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
 import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
 import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
+import 'package:xepa_frontend/shared/widgets/price_freshness_badge.dart';
 
 class SupermarketDetailScreen extends StatefulWidget {
   final SupermarketModel supermarket;
@@ -223,13 +224,19 @@ class _SupermarketDetailScreenState extends State<SupermarketDetailScreen> {
                       style: TextStyle(color: Colors.grey[500], fontSize: 13),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'R\$ ${item.price.toStringAsFixed(2).replaceAll('.', ',')}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Color(0xFF2196F3),
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'R\$ ${item.price.toStringAsFixed(2).replaceAll('.', ',')}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Color(0xFF2196F3),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        PriceFreshnessBadge(updatedAt: item.priceUpdatedAt, compact: true),
+                      ],
                     ),
                   ],
                 ),

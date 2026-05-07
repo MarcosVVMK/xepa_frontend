@@ -14,6 +14,8 @@ import 'package:xepa_frontend/features/product/data/models/product_model.dart';
 import 'package:xepa_frontend/features/product/data/models/product_price_model.dart';
 import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
 import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
+import 'package:xepa_frontend/shared/utils/price_freshness_utils.dart';
+import 'package:xepa_frontend/shared/widgets/price_freshness_badge.dart';
 
 import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
 import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/supermarket_detail_screen.dart';
@@ -135,7 +137,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_isLoading) {
       return const Scaffold(
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF42A5F5)),
+          child: CircularProgressIndicator(color: Color(0xFF2196F3)),
         ),
       );
     }
@@ -146,7 +148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         index: _currentNavIndex,
         children: [
           _buildHomeTab(),
-          const ListsScreen(),
+          ListsScreen(isActive: _currentNavIndex == 1),
           const QrScannerScreen(),
           const ExploreScreen(),
         ],
@@ -157,99 +159,123 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildHomeTab() {
     return SafeArea(
-      child: SingleChildScrollView(
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await Future.wait([
+            _loadUser(),
+            _loadCheapestProducts(),
+            _loadClosestProducts(),
+            _loadClosestSupermarkets(),
+          ]);
+        },
+        color: const Color(0xFF2196F3),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            const SizedBox(height: 16),
-            _buildSupermarketStories(),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'Ofertas Mais Baratas',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+            if (_isLoadingProducts || _isLoadingClosestProducts || _isLoadingSupermarkets)
+              const LinearProgressIndicator(
+                color: Color(0xFF2196F3),
+                backgroundColor: Colors.transparent,
+                minHeight: 2,
+              ),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+              _buildHeader(),
+              const SizedBox(height: 16),
+              _buildSupermarketStories(),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Ofertas Mais Baratas',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _isLoadingProducts 
-                ? const Center(child: CircularProgressIndicator())
-                : _cheapestProducts.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 40),
-                          child: Column(
-                            children: [
-                              Icon(Icons.sell_outlined, size: 60, color: Colors.grey[300]),
-                              const SizedBox(height: 16),
-                              Text('Nenhuma oferta encontrada', style: TextStyle(color: Colors.grey[500])),
-                            ],
+              const SizedBox(height: 16),
+              _isLoadingProducts && _cheapestProducts.isEmpty
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)))
+                  : _cheapestProducts.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            child: Column(
+                              children: [
+                                Icon(Icons.sell_outlined, size: 60, color: Colors.grey[300]),
+                                const SizedBox(height: 16),
+                                Text('Nenhuma oferta encontrada', style: TextStyle(color: Colors.grey[500])),
+                              ],
+                            ),
+                          ),
+                        )
+                      : SizedBox(
+                          height: 200,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _cheapestProducts.length,
+                            itemBuilder: (context, index) {
+                              final item = _cheapestProducts[index];
+                              return _buildProductCard(item.product, item.supermarket, item.price, item.priceUpdatedAt);
+                            },
                           ),
                         ),
-                      )
-                    : SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _cheapestProducts.length,
-                          itemBuilder: (context, index) {
-                            final item = _cheapestProducts[index];
-                            return _buildProductCard(item.product, item.supermarket, item.price);
-                          },
-                        ),
-                      ),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'Ofertas Mais Próximas',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Ofertas Mais Próximas',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _isLoadingClosestProducts 
-                ? const Center(child: CircularProgressIndicator())
-                : _closestProducts.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 40),
-                          child: Column(
-                            children: [
-                              Icon(Icons.location_on_outlined, size: 60, color: Colors.grey[300]),
-                              const SizedBox(height: 16),
-                              Text('Nenhuma oferta próxima', style: TextStyle(color: Colors.grey[500])),
-                            ],
+              const SizedBox(height: 16),
+              _isLoadingClosestProducts
+                  ? const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 40), child: CircularProgressIndicator(color: Color(0xFF2196F3))))
+                  : _closestProducts.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            child: Column(
+                              children: [
+                                Icon(Icons.location_on_outlined, size: 60, color: Colors.grey[300]),
+                                const SizedBox(height: 16),
+                                Text('Nenhuma oferta próxima', style: TextStyle(color: Colors.grey[500])),
+                              ],
+                            ),
+                          ),
+                        )
+                      : SizedBox(
+                          height: 200,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _closestProducts.length,
+                            itemBuilder: (context, index) {
+                              final item = _closestProducts[index];
+                              return _buildProductCard(item.product, item.supermarket, item.price, item.priceUpdatedAt);
+                            },
                           ),
                         ),
-                      )
-                    : SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _closestProducts.length,
-                          itemBuilder: (context, index) {
-                            final item = _closestProducts[index];
-                            return _buildProductCard(item.product, item.supermarket, item.price);
-                          },
-                        ),
-                      ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
-    );
-  }
+    ],
+  ),
+),
+);
+}
 
   Widget _buildSupermarketStories() {
     return Column(
@@ -270,7 +296,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         SizedBox(
           height: 100,
           child: _isLoadingSupermarkets
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)))
               : _closestSupermarkets.isEmpty
                   ? Center(
                       child: Text(
@@ -337,7 +363,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildProductCard(ProductModel product, SupermarketModel supermarket, double price) {
+  Widget _buildProductCard(ProductModel product, SupermarketModel supermarket, double price, DateTime? priceUpdatedAt) {
+    final freshnessColor = getPriceFreshnessColor(priceUpdatedAt);
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -366,15 +393,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Icon(Icons.shopping_bag_outlined, color: Colors.grey),
-              ),
+            Stack(
+              children: [
+                Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.shopping_bag_outlined, color: Colors.grey),
+                  ),
+                ),
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: freshnessColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: freshnessColor.withValues(alpha: 0.4),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             Text(
@@ -391,13 +441,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
-            Text(
-              'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Color(0xFF4CAF50),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF4CAF50),
+                    ),
+                  ),
+                ),
+                PriceFreshnessBadge(updatedAt: priceUpdatedAt, compact: true),
+              ],
             ),
           ],
         ),

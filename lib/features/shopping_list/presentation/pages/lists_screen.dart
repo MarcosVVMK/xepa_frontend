@@ -5,7 +5,8 @@ import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_m
 import 'list_detail_screen.dart';
 
 class ListsScreen extends StatefulWidget {
-  const ListsScreen({super.key});
+  final bool isActive;
+  const ListsScreen({super.key, this.isActive = false});
 
   @override
   State<ListsScreen> createState() => _ListsScreenState();
@@ -19,6 +20,14 @@ class _ListsScreenState extends State<ListsScreen> {
   void initState() {
     super.initState();
     _loadLists();
+  }
+
+  @override
+  void didUpdateWidget(ListsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _loadLists();
+    }
   }
 
   Future<void> _loadLists() async {
@@ -100,65 +109,85 @@ class _ListsScreenState extends State<ListsScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-              decoration: const BoxDecoration(
-                color: Color(0xFF2196F3),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
+        child: RefreshIndicator(
+          onRefresh: _loadLists,
+          color: const Color(0xFF2196F3),
+          child: Column(
+            children: [
+              if (_isLoading)
+                const LinearProgressIndicator(
+                  color: Color(0xFF2196F3),
+                  backgroundColor: Colors.transparent,
+                  minHeight: 2,
+                ),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      // Header
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2196F3),
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(20),
+                            bottomRight: Radius.circular(20),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.shopping_cart_rounded,
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Minhas Listas',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${_lists.length} listas criadas',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.85),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Lists
+                      _lists.isEmpty
+                          ? SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.7,
+                              child: _buildEmptyState(),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _lists.length,
+                              itemBuilder: (context, index) =>
+                                  _buildListCard(_lists[index]),
+                            ),
+                    ],
+                  ),
                 ),
               ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.shopping_cart_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Minhas Listas',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '${_lists.length} listas criadas',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Lists
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _lists.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _lists.length,
-                      itemBuilder: (context, index) =>
-                          _buildListCard(_lists[index]),
-                    ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(

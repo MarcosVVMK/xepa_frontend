@@ -132,146 +132,180 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 14, 16, 0),
-              decoration:  const BoxDecoration(
-                color: Color(0xFF2196F3),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverToBoxAdapter(
               child: Column(
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_rounded,
-                          color: Colors.white, size: 26),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 16, 0),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF2196F3),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              'Explorar',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            const Icon(Icons.location_on_rounded, color: Colors.white, size: 26),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Explorar',
+                                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Mercados e Produtos',
+                                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                                  ),
+                                ],
                               ),
                             ),
-                            Text(
-                              'Mercados e Produtos',
-                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                            IconButton(
+                              icon: Icon(_showMap ? Icons.list_rounded : Icons.map_rounded),
+                              color: Colors.white,
+                              onPressed: () {
+                                setState(() {
+                                  _showMap = !_showMap;
+                                });
+                              },
                             ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        icon: Icon(_showMap ? Icons.list_rounded : Icons.map_rounded),
-                        color: Colors.white,
-                        onPressed: () {
-                          setState(() {
-                            _showMap = !_showMap;
-                          });
-                        },
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        TabBar(
+                          controller: _tabController,
+                          indicatorColor: Colors.white,
+                          indicatorWeight: 3,
+                          labelColor: Colors.white,
+                          unselectedLabelColor: Colors.white70,
+                          tabs: const [
+                            Tab(text: 'Mercados'),
+                            Tab(text: 'Produtos'),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  TabBar(
-                    controller: _tabController,
-                    indicatorColor: Colors.white,
-                    indicatorWeight: 3,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white70,
-                    tabs: const [
-                      Tab(text: 'Mercados'),
-                      Tab(text: 'Produtos'),
-                    ],
+                  // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF2196F3).withValues(alpha: 0.2)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onSubmitted: _handleSearch,
+                        decoration: InputDecoration(
+                          hintText: 'Buscar...',
+                          hintStyle: TextStyle(color: Colors.grey[400]),
+                          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF2196F3)),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                            onPressed: () {
+                              _searchController.clear();
+                              _handleSearch('');
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF2196F3).withValues(alpha: 0.2)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onSubmitted: _handleSearch,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar...',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
-                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF2196F3)),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.clear_rounded, color: Colors.grey),
-                      onPressed: () {
-                        _searchController.clear();
-                        _handleSearch('');
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      // Markets Tab
-                      _supermarketResults.isNotEmpty
-                          ? ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: _supermarketResults.length,
-                              itemBuilder: (context, index) => _buildSupermarketCard(context, _supermarketResults[index]),
-                            )
-                          : _showMap
-                              ? _buildMapView()
-                              : _supermarkets.isEmpty
-                                ? _buildEmptyState('Nenhum mercado encontrado')
-                                : ListView.builder(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                    itemCount: _supermarkets.length,
-                                    itemBuilder: (context, index) =>
-                                        _buildSupermarketCard(context, _supermarkets[index]),
-                                  ),
-                      
-                      // Products Tab
-                      _productResults.isNotEmpty
-                          ? ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: _productResults.length,
-                              itemBuilder: (context, index) => _buildProductListTile(_productResults[index]),
-                            )
-                          : _buildEmptyState('Nenhum produto encontrado'),
-                    ],
-                  ),
-            ),
           ],
+          body: Stack(
+            children: [
+              Column(
+                children: [
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        // Markets Tab
+                        _supermarketResults.isNotEmpty
+                            ? ListView.builder(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                itemCount: _supermarketResults.length,
+                                itemBuilder: (context, index) => _buildSupermarketCard(context, _supermarketResults[index]),
+                              )
+                            : _showMap
+                                ? _buildMapView()
+                                : ListView(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    children: [
+                                      if (_supermarkets.isEmpty && !_isLoading)
+                                        SizedBox(
+                                          height: MediaQuery.of(context).size.height * 0.5,
+                                          child: _buildEmptyState('Nenhum mercado encontrado'),
+                                        )
+                                      else
+                                        ..._supermarkets.map((m) => _buildSupermarketCard(context, m)),
+                                    ],
+                                  ),
+                        // Products Tab
+                        _productResults.isNotEmpty
+                            ? ListView.builder(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                itemCount: _productResults.length,
+                                itemBuilder: (context, index) => _buildProductListTile(_productResults[index]),
+                              )
+                            : ListView(
+                                children: [
+                                  if (!_isLoading)
+                                    SizedBox(
+                                      height: MediaQuery.of(context).size.height * 0.5,
+                                      child: _buildEmptyState(_searchController.text.isEmpty 
+                                          ? 'Digite algo para buscar produtos'
+                                          : 'Nenhum produto encontrado'),
+                                    ),
+                                ],
+                              ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (_isLoading)
+                const Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: LinearProgressIndicator(
+                    color: Color(0xFF2196F3),
+                    backgroundColor: Colors.transparent,
+                    minHeight: 3,
+                  ),
+                ),
+              if (_isLoading && _supermarketResults.isEmpty && _supermarkets.isEmpty && _productResults.isEmpty)
+                const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF2196F3)),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -378,7 +412,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       _showMap = true;
     });
     
-    // Pequeno delay para garantir que o widget do mapa foi construído e o controlador anexado
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted) {
         _mapController.move(LatLng(lat, lng), 16.0);

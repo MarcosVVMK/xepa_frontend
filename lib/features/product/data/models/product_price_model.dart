@@ -6,11 +6,13 @@ class ProductPrice extends Equatable {
   final ProductModel product;
   final SupermarketModel supermarket;
   final double price;
+  final DateTime? priceUpdatedAt;
 
   const ProductPrice({
     required this.product,
     required this.supermarket,
     required this.price,
+    this.priceUpdatedAt,
   });
 
   factory ProductPrice.fromJson(Map<String, dynamic> json) {
@@ -18,9 +20,12 @@ class ProductPrice extends Equatable {
       product: ProductModel.fromJson(json['product']),
       supermarket: SupermarketModel.fromJson(json['supermarket']),
       price: (json['price'] as num).toDouble(),
+      priceUpdatedAt: json['priceUpdatedAt'] != null
+          ? DateTime.tryParse(json['priceUpdatedAt'])
+          : null,
     );
   }
 
   @override
-  List<Object?> get props => [product, supermarket, price];
+  List<Object?> get props => [product, supermarket, price, priceUpdatedAt];
 }
