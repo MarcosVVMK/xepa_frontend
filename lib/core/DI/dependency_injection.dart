@@ -43,7 +43,7 @@ class DependencyInjection {
     // ------------------------------------------------------------------
     // 3. FEATURES - AUTH (Exemplo completo de fluxo)
     // ------------------------------------------------------------------
-    
+
     // DataSources
     getIt.registerLazySingleton(() => AuthRemoteDataSource(getIt<ApiClient>()));
 
@@ -57,28 +57,44 @@ class DependencyInjection {
 
     // UseCases
     getIt.registerLazySingleton(() => LoginUseCase(getIt<IAuthRepository>()));
-    getIt.registerLazySingleton(() => RegisterUseCase(getIt<IAuthRepository>()));
+    getIt.registerLazySingleton(
+      () => RegisterUseCase(getIt<IAuthRepository>()),
+    );
 
     // ------------------------------------------------------------------
     // 4. FEATURES - PROFILE
     // ------------------------------------------------------------------
 
-    getIt.registerLazySingleton(() => ProfileRemoteDataSource(getIt<ApiClient>()));
-    getIt.registerLazySingleton<IGeocodingService>(() => GeocodingServiceImpl());
-    getIt.registerLazySingleton<IZipCodeService>(() => ZipCodeServiceImpl(getIt<ApiClient>()));
-    
+    getIt.registerLazySingleton(
+      () => ProfileRemoteDataSource(getIt<ApiClient>()),
+    );
+    getIt.registerLazySingleton<IGeocodingService>(
+      () => GeocodingServiceImpl(),
+    );
+    getIt.registerLazySingleton<IZipCodeService>(
+      () => ZipCodeServiceImpl(getIt<ApiClient>()),
+    );
+
     getIt.registerLazySingleton<IProfileRepository>(
       () => ProfileRepositoryImpl(getIt<ProfileRemoteDataSource>()),
     );
-    getIt.registerLazySingleton(() => GetProfileUseCase(getIt<IProfileRepository>()));
-    getIt.registerLazySingleton(() => UpdateProfileUseCase(getIt<IProfileRepository>()));
-    getIt.registerLazySingleton(() => SaveAddressUseCase(getIt<IProfileRepository>()));
-    getIt.registerLazySingleton(() => ChangePasswordUseCase(getIt<IProfileRepository>()));
+    getIt.registerLazySingleton(
+      () => GetProfileUseCase(getIt<IProfileRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => UpdateProfileUseCase(getIt<IProfileRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => SaveAddressUseCase(getIt<IProfileRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => ChangePasswordUseCase(getIt<IProfileRepository>()),
+    );
 
     // ------------------------------------------------------------------
     // 5. FEATURES - NFC & SHOPPING LIST
     // ------------------------------------------------------------------
-    
+
     // DataSources
     getIt.registerLazySingleton(() => NfcParserService(getIt<ApiClient>()));
     getIt.registerLazySingleton(() => ProductService(getIt<ApiClient>()));

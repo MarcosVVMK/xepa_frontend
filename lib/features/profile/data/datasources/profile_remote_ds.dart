@@ -1,4 +1,3 @@
-import 'dart:developer' as dev;
 import 'package:xepa_frontend/core/api/api_client.dart';
 import 'package:xepa_frontend/features/profile/data/models/address_model.dart';
 import 'package:xepa_frontend/features/profile/data/models/profile_model.dart';
@@ -13,8 +12,7 @@ class ProfileRemoteDataSource {
     try {
       final response = await apiClient.dio.get('profile');
       return ProfileModel.fromJson(response.data);
-    } on DioException catch (e, stackTrace) {
-      dev.log('DioException ao obter perfil', error: e, stackTrace: stackTrace);
+    } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
   }
@@ -36,8 +34,7 @@ class ProfileRemoteDataSource {
         },
       );
       return ProfileModel.fromJson(response.data);
-    } on DioException catch (e, stackTrace) {
-      dev.log('DioException ao atualizar perfil', error: e, stackTrace: stackTrace);
+    } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
   }
@@ -68,7 +65,6 @@ class ProfileRemoteDataSource {
       );
       return AddressModel.fromJson(response.data);
     } on DioException catch (e, stackTrace) {
-      dev.log('DioException ao salvar endereço', error: e, stackTrace: stackTrace);
       throw Exception(_extractErrorMessage(e));
     }
   }
@@ -77,8 +73,7 @@ class ProfileRemoteDataSource {
     try {
       final response = await apiClient.dio.get('profile/address');
       return AddressModel.fromJson(response.data);
-    } on DioException catch (e, stackTrace) {
-      dev.log('DioException ao obter endereço', error: e, stackTrace: stackTrace);
+    } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
   }
@@ -95,8 +90,7 @@ class ProfileRemoteDataSource {
           'new_password': newPassword,
         },
       );
-    } on DioException catch (e, stackTrace) {
-      dev.log('DioException ao alterar senha', error: e, stackTrace: stackTrace);
+    } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
   }

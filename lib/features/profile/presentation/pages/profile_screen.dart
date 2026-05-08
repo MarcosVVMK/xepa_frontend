@@ -89,10 +89,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _emailController.text = data['email'] ?? '';
           _phoneController.text = _formatPhone(data['phone'] ?? '');
           _cpfController.text = _formatCpf(data['cpf'] ?? '');
-          
+
           if (data['address'] != null) {
             final addressData = data['address'];
-            _zipCodeController.text = addressData['zipCode'] ?? addressData['zipcode'] ?? '';
+            _zipCodeController.text =
+                addressData['zipCode'] ?? addressData['zipcode'] ?? '';
             _streetController.text = addressData['street'] ?? '';
             _numberController.text = addressData['number'] ?? '';
             _complementController.text = addressData['complement'] ?? '';
@@ -106,7 +107,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isLoading = false);
       }
     } catch (e, stackTrace) {
-      dev.log('Erro ao carregar dados do usuário', error: e, stackTrace: stackTrace);
+      dev.log(
+        'Erro ao carregar dados do usuário',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -115,13 +120,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
-      await _apiClient.dio.put('/customer', data: {
-        'firstName': _firstNameController.text,
-        'lastName': _lastNameController.text,
-        'email': _emailController.text,
-        'phone': _phoneController.text,
-        'cpf': _cpfController.text,
-      });
+      await _apiClient.dio.put(
+        '/customer',
+        data: {
+          'firstName': _firstNameController.text,
+          'lastName': _lastNameController.text,
+          'email': _emailController.text,
+          'phone': _phoneController.text,
+          'cpf': _cpfController.text,
+        },
+      );
 
       if (mounted) {
         setState(() {
@@ -136,7 +144,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } catch (e, stackTrace) {
-      dev.log('Erro ao salvar dados pessoais', error: e, stackTrace: stackTrace);
+      dev.log(
+        'Erro ao salvar dados pessoais',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,33 +170,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       try {
         final geocodingService = getIt<IGeocodingService>();
-        final addressStr = '${_streetController.text}, ${_numberController.text}, ${_cityController.text}, ${_stateController.text}';
-        final geoResult = await geocodingService.getCoordinatesFromAddress(addressStr);
-
-        geoResult.fold(
-          (failure) => null,
-          (coords) {
-            latitude = coords['latitude'];
-            longitude = coords['longitude'];
-          },
+        final addressStr =
+            '${_streetController.text}, ${_numberController.text}, ${_cityController.text}, ${_stateController.text}';
+        final geoResult = await geocodingService.getCoordinatesFromAddress(
+          addressStr,
         );
+
+        geoResult.fold((failure) => null, (coords) {
+          latitude = coords['latitude'];
+          longitude = coords['longitude'];
+        });
       } catch (e, stackTrace) {
-        dev.log('Erro ao obter coordenadas (geocodificação)', error: e, stackTrace: stackTrace);
+        dev.log(
+          'Erro ao obter coordenadas (geocodificação)',
+          error: e,
+          stackTrace: stackTrace,
+        );
         // Falha ao obter coordenadas, continua sem latitude/longitude
       }
 
-      await _apiClient.dio.post('address', data: {
-        'zipCode': _zipCodeController.text,
-        'street': _streetController.text,
-        'number': _numberController.text,
-        'complement': _complementController.text,
-        'neighborhood': _neighborhoodController.text,
-        'city': _cityController.text,
-        'state': _stateController.text,
-        'uf': _stateController.text,
-        'latitude': latitude,
-        'longitude': longitude,
-      });
+      await _apiClient.dio.post(
+        'address',
+        data: {
+          'zipCode': _zipCodeController.text,
+          'street': _streetController.text,
+          'number': _numberController.text,
+          'complement': _complementController.text,
+          'neighborhood': _neighborhoodController.text,
+          'city': _cityController.text,
+          'state': _stateController.text,
+          'uf': _stateController.text,
+          'latitude': latitude,
+          'longitude': longitude,
+        },
+      );
 
       if (mounted) {
         setState(() {
@@ -242,7 +261,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF5350)),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFEF5350),
+            ),
             child: const Text('Excluir'),
           ),
         ],
@@ -337,8 +358,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: const Icon(Icons.logout_rounded, size: 20),
                     label: const Text(
                       'Sair da conta',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFEF5350),
@@ -361,8 +384,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: const Icon(Icons.delete_forever_rounded, size: 20),
                     label: const Text(
                       'Excluir minha conta',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFD32F2F),
@@ -518,10 +543,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(18),
-            child: child,
-          ),
+          Padding(padding: const EdgeInsets.all(18), child: child),
           if (isEditing) ...[
             const Divider(height: 1),
             Padding(
@@ -543,7 +565,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : const Icon(Icons.check_rounded, size: 20),
                   label: Text(
                     _isSaving ? 'Salvando...' : 'Salvar Alterações',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2196F3),
@@ -674,39 +699,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           if (cep.length == 8) {
                             setState(() => _isSaving = true);
                             try {
-                            final zipCodeService = getIt<IZipCodeService>();
-                            final result = await zipCodeService.getAddressByZipCode(cep);
+                              final zipCodeService = getIt<IZipCodeService>();
+                              final result = await zipCodeService
+                                  .getAddressByZipCode(cep);
 
-                            result.fold(
-                              (failure) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(failure.message),
-                                      backgroundColor: const Color(0xFFEF5350),
-                                    ),
-                                  );
-                                }
-                              },
-                              (data) {
-                                if (mounted) {
-                                  setState(() {
-                                    _streetController.text = data['street'] ?? '';
-                                    _neighborhoodController.text = data['neighborhood'] ?? '';
-                                    _cityController.text = data['city'] ?? '';
-                                    _stateController.text = data['state'] ?? '';
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Endereço encontrado!'),
-                                      backgroundColor: Color(0xFF66BB6A),
-                                    ),
-                                  );
-                                }
-                              },
-                            );
+                              result.fold(
+                                (failure) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(failure.message),
+                                        backgroundColor: const Color(
+                                          0xFFEF5350,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                (data) {
+                                  if (mounted) {
+                                    setState(() {
+                                      _streetController.text =
+                                          data['street'] ?? '';
+                                      _neighborhoodController.text =
+                                          data['neighborhood'] ?? '';
+                                      _cityController.text = data['city'] ?? '';
+                                      _stateController.text =
+                                          data['state'] ?? '';
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Endereço encontrado!'),
+                                        backgroundColor: Color(0xFF66BB6A),
+                                      ),
+                                    );
+                                  }
+                                },
+                              );
                             } catch (e, stackTrace) {
-                              dev.log('Erro ao buscar CEP', error: e, stackTrace: stackTrace);
+                              dev.log(
+                                'Erro ao buscar CEP',
+                                error: e,
+                                stackTrace: stackTrace,
+                              );
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -721,7 +756,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Digite um CEP válido com 8 dígitos!'),
+                                content: Text(
+                                  'Digite um CEP válido com 8 dígitos!',
+                                ),
                                 backgroundColor: Color(0xFFEF5350),
                               ),
                             );
@@ -865,7 +902,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         filled: true,
         fillColor: enabled ? Colors.white : const Color(0xFFF9FAFB),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }

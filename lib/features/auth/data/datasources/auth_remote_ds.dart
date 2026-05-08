@@ -1,4 +1,3 @@
-import 'dart:developer' as dev;
 import 'package:xepa_frontend/core/api/api_client.dart';
 import 'package:xepa_frontend/features/auth/data/models/auth_response_model.dart';
 import 'package:dio/dio.dart';
@@ -10,14 +9,16 @@ class AuthRemoteDataSource {
 
   Future<AuthResponseModel> login(String email, String password) async {
     try {
+      print('🔑 Iniciando processo de login para: $email');
       final response = await apiClient.dio.post(
-        '/login',
+        'login',
         data: {'email': email, 'password': password},
       );
 
+      print('🔑 Login bem sucedido!');
       return AuthResponseModel.fromJson(response.data);
-    } on DioException catch (e, stackTrace) {
-      dev.log('DioException no login', error: e, stackTrace: stackTrace);
+    } on DioException catch (e) {
+      print('DioException no login: $e');
       final message = _extractErrorMessage(e);
       throw Exception(message);
     }
@@ -33,7 +34,7 @@ class AuthRemoteDataSource {
   }) async {
     try {
       final response = await apiClient.dio.post(
-        '/register',
+        'register',
         data: {
           'first_name': firstName,
           'last_name': lastName,
@@ -45,8 +46,8 @@ class AuthRemoteDataSource {
       );
 
       return AuthResponseModel.fromJson(response.data);
-    } on DioException catch (e, stackTrace) {
-      dev.log('DioException no registro', error: e, stackTrace: stackTrace);
+    } on DioException catch (e) {
+      print('DioException no registro: $e');
       final message = _extractErrorMessage(e);
       throw Exception(message);
     }
@@ -54,10 +55,10 @@ class AuthRemoteDataSource {
 
   Future<bool> verifyToken() async {
     try {
-      final response = await apiClient.dio.get('/customer/me');
+      final response = await apiClient.dio.get('customer/me');
       return response.statusCode == 200;
-    } catch (e, stackTrace) {
-      dev.log('Erro ao verificar token', error: e, stackTrace: stackTrace);
+    } catch (e) {
+      print('Erro ao verificar token: $e');
       return false;
     }
   }
