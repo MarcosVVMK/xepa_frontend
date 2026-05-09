@@ -2,13 +2,16 @@ import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import 'package:xepa_frontend/core/api/api_client.dart';
 import 'package:xepa_frontend/core/auth/token_storage.dart';
 import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
 
 import 'package:xepa_frontend/features/auth/presentation/pages/login_screen.dart';
-import 'package:xepa_frontend/core/services/geocoding_service.dart';
-import 'package:xepa_frontend/core/services/zipcode_service.dart';
+import 'package:xepa_frontend/core/services/i_geocoding_service.dart';
+import 'package:xepa_frontend/core/services/i_zipcode_service.dart';
+import 'package:xepa_frontend/features/profile/domain/usecases/get_profile_usecase.dart';
+import 'package:xepa_frontend/features/profile/domain/usecases/update_profile_usecase.dart';
+import 'package:xepa_frontend/features/profile/domain/usecases/save_address_usecase.dart';
+import 'package:xepa_frontend/features/profile/domain/usecases/delete_account_usecase.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,7 +21,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _apiClient = getIt<ApiClient>();
+  final _getProfileUseCase = getIt<GetProfileUseCase>();
+  final _updateProfileUseCase = getIt<UpdateProfileUseCase>();
+  final _saveAddressUseCase = getIt<SaveAddressUseCase>();
+  final _deleteAccountUseCase = getIt<DeleteAccountUseCase>();
+
   UserModel? _user;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -79,36 +86,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUser() async {
     try {
-      final response = await _apiClient.dio.get('customer/me');
-      if (response.statusCode == 200 && response.data != null && mounted) {
-        final data = response.data;
-        setState(() {
-          _user = UserModel.fromJson(data);
-          _firstNameController.text = data['first_name'] ?? '';
-          _lastNameController.text = data['last_name'] ?? '';
-          _emailController.text = data['email'] ?? '';
-          _phoneController.text = _formatPhone(data['phone'] ?? '');
-          _cpfController.text = _formatCpf(data['cpf'] ?? '');
+      final result = await _getProfileUseCase();
 
-          if (data['address'] != null) {
-            final addressData = data['address'];
-            _zipCodeController.text =
-                addressData['zipCode'] ?? addressData['zipcode'] ?? '';
-            _streetController.text = addressData['street'] ?? '';
-            _numberController.text = addressData['number'] ?? '';
-            _complementController.text = addressData['complement'] ?? '';
-            _neighborhoodController.text = addressData['neighborhood'] ?? '';
-            _cityController.text = addressData['city'] ?? '';
-            _stateController.text = addressData['state'] ?? '';
+      result.fold(
+        (failure) {
+          dev.log('Erro ao carregar dados do usuário: ${failure.message}');
+          if (mounted) setState(() => _isLoading = false);
+        },
+        (profile) {
+          if (mounted) {
+            setState(() {
+              _user = UserModel(
+                id: profile.id,
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                email: profile.email,
+                cpf: profile.cpf,
+                phone: profile.phone,
+                address: profile.address,
+                createdAt: profile.createdAt,
+              );
+
+              _firstNameController.text = profile.firstName;
+              _lastNameController.text = profile.lastName;
+              _emailController.text = profile.email;
+              _phoneController.text = _formatPhone(profile.phone);
+              _cpfController.text = _formatCpf(profile.cpf);
+
+              if (profile.address != null) {
+                final address = profile.address!;
+                _zipCodeController.text = _formatCep(address.zipCode);
+                _streetController.text = address.street;
+                _numberController.text = address.number;
+                _complementController.text = address.complement;
+                _neighborhoodController.text = address.neighborhood;
+                _cityController.text = address.city;
+                _stateController.text = address.uf;
+              }
+              _isLoading = false;
+            });
           }
-          _isLoading = false;
-        });
-      } else if (mounted) {
-        setState(() => _isLoading = false);
-      }
+        },
+      );
     } catch (e, stackTrace) {
       dev.log(
-        'Erro ao carregar dados do usuário',
+        'Exceção ao carregar dados do usuário',
         error: e,
         stackTrace: stackTrace,
       );
@@ -120,32 +142,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
-      await _apiClient.dio.put(
-        '/customer',
-        data: {
-          'firstName': _firstNameController.text,
-          'lastName': _lastNameController.text,
-          'email': _emailController.text,
-          'phone': _phoneController.text,
-          'cpf': _cpfController.text,
-        },
+      final result = await _updateProfileUseCase(
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        email: _emailController.text,
+        phone: _phoneController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+        cpf: _cpfController.text.replaceAll(RegExp(r'[^0-9]'), ''),
       );
 
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-          _isEditingPersonal = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dados pessoais atualizados!'),
-            backgroundColor: Color(0xFF66BB6A),
-          ),
-        );
-      }
+      result.fold(
+        (failure) {
+          dev.log('Erro ao salvar dados pessoais: ${failure.message}');
+          if (mounted) {
+            setState(() => _isSaving = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Erro ao salvar dados pessoais: ${failure.message}'),
+                backgroundColor: const Color(0xFFEF5350),
+              ),
+            );
+          }
+        },
+        (profile) {
+          if (mounted) {
+            setState(() {
+              _isSaving = false;
+              _isEditingPersonal = false;
+              _user = UserModel.fromProfile(profile);
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Dados pessoais atualizados!'),
+                backgroundColor: Color(0xFF66BB6A),
+              ),
+            );
+          }
+        },
+      );
     } catch (e, stackTrace) {
       dev.log(
-        'Erro ao salvar dados pessoais',
+        'Exceção ao salvar dados pessoais',
         error: e,
         stackTrace: stackTrace,
       );
@@ -153,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Erro ao salvar dados pessoais!'),
+            content: Text('Erro inesperado ao salvar dados pessoais!'),
             backgroundColor: Color(0xFFEF5350),
           ),
         );
@@ -186,44 +222,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
           error: e,
           stackTrace: stackTrace,
         );
-        // Falha ao obter coordenadas, continua sem latitude/longitude
       }
 
-      await _apiClient.dio.post(
-        'address',
-        data: {
-          'zipCode': _zipCodeController.text,
-          'street': _streetController.text,
-          'number': _numberController.text,
-          'complement': _complementController.text,
-          'neighborhood': _neighborhoodController.text,
-          'city': _cityController.text,
-          'state': _stateController.text,
-          'uf': _stateController.text,
-          'latitude': latitude,
-          'longitude': longitude,
-        },
+      final result = await _saveAddressUseCase(
+        zipCode: _zipCodeController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+        street: _streetController.text,
+        number: _numberController.text,
+        complement: _complementController.text,
+        neighborhood: _neighborhoodController.text,
+        city: _cityController.text,
+        state: _stateController.text,
+        uf: _stateController.text,
+        latitude: latitude,
+        longitude: longitude,
       );
 
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-          _isEditingAddress = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Endereço atualizado!'),
-            backgroundColor: Color(0xFF66BB6A),
-          ),
-        );
-      }
+      result.fold(
+        (failure) {
+          dev.log('Erro ao salvar endereço: ${failure.message}');
+          if (mounted) {
+            setState(() => _isSaving = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Erro ao salvar endereço: ${failure.message}'),
+                backgroundColor: const Color(0xFFEF5350),
+              ),
+            );
+          }
+        },
+        (address) {
+          if (mounted) {
+            setState(() {
+              _isSaving = false;
+              _isEditingAddress = false;
+              if (_user != null) {
+                _user = UserModel(
+                  id: _user!.id,
+                  firstName: _user!.firstName,
+                  lastName: _user!.lastName,
+                  email: _user!.email,
+                  cpf: _user!.cpf,
+                  phone: _user!.phone,
+                  address: address,
+                  createdAt: _user!.createdAt,
+                );
+              }
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Endereço atualizado!'),
+                backgroundColor: Color(0xFF66BB6A),
+              ),
+            );
+          }
+        },
+      );
     } catch (e, stackTrace) {
-      dev.log('Erro ao salvar endereço', error: e, stackTrace: stackTrace);
+      dev.log(
+        'Exceção ao salvar endereço',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Erro ao salvar endereço!'),
+            content: Text('Erro inesperado ao salvar endereço!'),
             backgroundColor: Color(0xFFEF5350),
           ),
         );
@@ -273,29 +337,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (confirmed != true) return;
 
     try {
-      await _apiClient.dio.delete('/customer/me');
-      final tokenStorage = getIt<TokenStorage>();
-      await tokenStorage.deleteToken();
-      await tokenStorage.deleteUser();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Conta excluída com sucesso.'),
-            backgroundColor: Color(0xFF66BB6A),
-          ),
-        );
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
-        );
-      }
+      final result = await _deleteAccountUseCase();
+
+      result.fold(
+        (failure) {
+          dev.log('Erro ao excluir conta: ${failure.message}');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Erro ao excluir conta: ${failure.message}'),
+                backgroundColor: const Color(0xFFEF5350),
+              ),
+            );
+          }
+        },
+        (_) async {
+          final tokenStorage = getIt<TokenStorage>();
+          await tokenStorage.deleteToken();
+          await tokenStorage.deleteUser();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Conta excluída com sucesso.'),
+                backgroundColor: Color(0xFF66BB6A),
+              ),
+            );
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+              (route) => false,
+            );
+          }
+        },
+      );
     } catch (e, stackTrace) {
-      dev.log('Erro ao excluir conta', error: e, stackTrace: stackTrace);
+      dev.log('Exceção ao excluir conta', error: e, stackTrace: stackTrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Erro ao excluir conta. Tente novamente.'),
+            content: Text('Erro inesperado ao excluir conta. Tente novamente.'),
             backgroundColor: Color(0xFFEF5350),
           ),
         );
@@ -920,5 +1000,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.length != 11) return phone;
     return '(${digits.substring(0, 2)}) ${digits.substring(2, 7)}-${digits.substring(7)}';
+  }
+
+  String _formatCep(String cep) {
+    final digits = cep.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length != 8) return cep;
+    return '${digits.substring(0, 5)}-${digits.substring(5)}';
   }
 }

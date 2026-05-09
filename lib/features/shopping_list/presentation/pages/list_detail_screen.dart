@@ -2,12 +2,11 @@ import 'dart:developer' as dev;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import 'package:xepa_frontend/features/shopping_list/data/datasources/shopping_list_service.dart';
-import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_model.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/shopping_list_usecases.dart';
 import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list.dart';
 
-import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
-import 'package:xepa_frontend/features/product/data/models/product_model.dart';
+import 'package:xepa_frontend/features/product/domain/usecases/product_usecases.dart';
+import 'package:xepa_frontend/features/product/domain/entities/product.dart';
 import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
 
 class ListDetailScreen extends StatefulWidget {
@@ -24,7 +23,7 @@ class ListDetailScreen extends StatefulWidget {
 }
 
 class _ListDetailScreenState extends State<ListDetailScreen> {
-  ShoppingListModel? _list;
+  ShoppingList? _list;
   bool _isLoading = true;
 
   @override
@@ -36,8 +35,8 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
   Future<void> _loadList() async {
     setState(() => _isLoading = true);
     try {
-      final service = getIt<ShoppingListService>();
-      final list = await service.getShoppingListById(widget.listId);
+      final useCase = getIt<GetShoppingListByIdUseCase>();
+      final list = await useCase(widget.listId);
       if (mounted) {
         setState(() {
           _list = list;
@@ -59,8 +58,8 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     if (item == null) return;
     
     try {
-      final service = getIt<ShoppingListService>();
-      await service.removeItemFromList(widget.listId, item.id!);
+      final useCase = getIt<RemoveItemFromListUseCase>();
+      await useCase(widget.listId, item.id!);
       await _loadList();
     } catch (e, stackTrace) {
       dev.log('Erro ao remover item da lista', error: e, stackTrace: stackTrace);
@@ -87,8 +86,8 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
             onPressed: () async {
               final newName = controller.text.trim();
               if (newName.isNotEmpty) {
-                final service = getIt<ShoppingListService>();
-                await service.updateShoppingList(widget.listId, {
+                final useCase = getIt<UpdateShoppingListUseCase>();
+                await useCase(widget.listId, {
                   'name': newName,
                 });
                 if (!mounted) return;
@@ -118,8 +117,8 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final service = getIt<ShoppingListService>();
-              await service.deleteShoppingList(widget.listId);
+              final useCase = getIt<DeleteShoppingListUseCase>();
+              await useCase(widget.listId);
               if (!mounted) return;
               Navigator.pop(ctx);
               Navigator.pop(context);
@@ -350,7 +349,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => ProductDetailScreen(
-              product: ProductModel(
+              product: Product(
                 id: item.productId,
                 name: name,
               ),
@@ -463,7 +462,7 @@ class _AddProductSheet extends StatefulWidget {
 class _AddProductSheetState extends State<_AddProductSheet> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  List<ProductModel> _searchResults = [];
+  List<Product> _searchResults = [];
   bool _isLoading = false;
   bool _isAdding = false;
 
@@ -517,8 +516,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
 
     setState(() => _isLoading = true);
     try {
-      final service = getIt<ProductService>();
-      final results = await service.searchProducts(
+      final useCase = getIt<SearchProductsUseCase>();
+      final results = await useCase(
         query,
         page: _page,
         size: _size,
@@ -630,7 +629,7 @@ class _AddProductSheetState extends State<_AddProductSheet> {
     );
   }
 
-  Future<void> _showQuantityDialog(ProductModel product) async {
+  Future<void> _showQuantityDialog(Product product) async {
     final controller = TextEditingController(text: '1');
     final unit = product.unitMeasure ?? 'UNIDADE';
 
@@ -679,8 +678,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
   Future<void> _addProduct(int productId, double quantity) async {
     setState(() => _isAdding = true);
     try {
-      final service = getIt<ShoppingListService>();
-      await service.addItemToList(widget.listId, productId, quantity, '');
+      final useCase = getIt<AddItemToListUseCase>();
+      await useCase(widget.listId, productId, quantity, '');
       if (mounted) {
         Navigator.pop(context);
       }

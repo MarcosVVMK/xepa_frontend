@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import 'package:xepa_frontend/features/product/data/models/product_price_model.dart';
-import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
-import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
+import 'package:xepa_frontend/features/supermarket_finder/domain/usecases/supermarket_usecases.dart';
 import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
 import 'package:xepa_frontend/shared/widgets/price_freshness_badge.dart';
 
+import 'package:xepa_frontend/features/supermarket_finder/domain/entities/supermarket.dart';
+
 class SupermarketDetailScreen extends StatefulWidget {
-  final SupermarketModel supermarket;
+  final Supermarket supermarket;
 
   const SupermarketDetailScreen({super.key, required this.supermarket});
 
@@ -16,7 +17,7 @@ class SupermarketDetailScreen extends StatefulWidget {
 }
 
 class _SupermarketDetailScreenState extends State<SupermarketDetailScreen> {
-  final SupermarketService _supermarketService = getIt<SupermarketService>();
+  final GetSupermarketProductsUseCase _getProductsUseCase = getIt<GetSupermarketProductsUseCase>();
   List<ProductPrice> _products = [];
   bool _isLoading = true;
 
@@ -30,7 +31,7 @@ class _SupermarketDetailScreenState extends State<SupermarketDetailScreen> {
     if (widget.supermarket.id == null) return;
     setState(() => _isLoading = true);
     try {
-      final products = await _supermarketService.getSupermarketProducts(widget.supermarket.id!);
+      final products = await _getProductsUseCase(widget.supermarket.id!);
       setState(() {
         _products = products;
         _isLoading = false;

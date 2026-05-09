@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:xepa_frontend/core/errors/failure.dart';
 import 'package:xepa_frontend/core/utils/typedef.dart';
-import 'package:xepa_frontend/core/services/geocoding_service.dart';
+import 'package:xepa_frontend/core/services/i_geocoding_service.dart';
 
 class GeocodingServiceImpl implements IGeocodingService {
   @override

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
+import 'package:xepa_frontend/features/supermarket_finder/domain/usecases/supermarket_usecases.dart';
+import 'package:xepa_frontend/features/supermarket_finder/domain/entities/supermarket.dart';
 import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/supermarket_detail_screen.dart';
-import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
 import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
 import 'package:xepa_frontend/core/auth/token_storage.dart';
 import 'dart:convert';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
-import 'package:xepa_frontend/features/product/data/models/product_model.dart';
+import 'package:xepa_frontend/features/product/domain/usecases/product_usecases.dart';
+import 'package:xepa_frontend/features/product/domain/entities/product.dart';
 import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
 import 'package:xepa_frontend/features/profile/domain/entities/address.dart';
 
@@ -25,10 +25,10 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
-  List<SupermarketModel> _supermarketResults = [];
-  List<ProductModel> _productResults = [];
+  List<Supermarket> _supermarketResults = [];
+  List<Product> _productResults = [];
   bool _isLoading = false;
-  final List<SupermarketModel> _supermarkets = [];
+  final List<Supermarket> _supermarkets = [];
   bool _showMap = false;
   LatLng? _userLocation;
   final MapController _mapController = MapController();
@@ -63,8 +63,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         }
       }
 
-      final supermarketService = getIt<SupermarketService>();
-      final results = await supermarketService.getClosestSupermarkets();
+      final useCase = getIt<GetClosestSupermarketsUseCase>();
+      final results = await useCase();
       
       if (mounted) {
         setState(() {
@@ -101,8 +101,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   Future<void> _searchSupermarkets(String query) async {
     setState(() => _isLoading = true);
     try {
-      final supermarketService = getIt<SupermarketService>();
-      final results = await supermarketService.searchSupermarkets(query);
+      final useCase = getIt<SearchSupermarketsUseCase>();
+      final results = await useCase(query);
       if (mounted) {
         setState(() {
           _supermarketResults = results;
@@ -117,8 +117,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   Future<void> _searchProducts(String query) async {
     setState(() => _isLoading = true);
     try {
-      final productService = getIt<ProductService>();
-      final results = await productService.searchProducts(query);
+      final useCase = getIt<SearchProductsUseCase>();
+      final results = await useCase(query);
       if (mounted) {
         setState(() {
           _productResults = results;
@@ -327,7 +327,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildProductListTile(ProductModel product) {
+  Widget _buildProductListTile(Product product) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: Container(
@@ -383,9 +383,10 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                   size: 40,
                 ),
               ),
-            ..._supermarkets.where((s) => s.address?.latitude != null).map((s) {
+            ..._supermarkets.where((s) => s.address?.latitude != null && s.address?.longitude != null).map((s) {
+              final addr = s.address!;
               return Marker(
-                point: LatLng(s.address!.latitude!, s.address!.longitude!),
+                point: LatLng(addr.latitude!, addr.longitude!),
                 width: 40,
                 height: 40,
                 child: GestureDetector(
@@ -419,7 +420,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     });
   }
 
-  Widget _buildSupermarketCard(BuildContext context, SupermarketModel market) {
+  Widget _buildSupermarketCard(BuildContext context, Supermarket market) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(

@@ -16,6 +16,8 @@ class SaveAddressUseCase {
     required String city,
     required String state,
     required String uf,
+    double? latitude,
+    double? longitude,
   }) async {
     return await _repository.saveAddress(
       zipCode: zipCode,
@@ -26,6 +28,8 @@ class SaveAddressUseCase {
       city: city,
       state: state,
       uf: uf,
+      latitude: latitude,
+      longitude: longitude,
     );
   }
 }

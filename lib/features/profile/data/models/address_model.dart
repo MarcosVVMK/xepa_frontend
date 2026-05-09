@@ -42,7 +42,7 @@ class AddressModel extends Address {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'zip_code': zipCode,
+      'zipCode': zipCode,
       'street': street,
       'number': number,
       'complement': complement,

@@ -40,4 +40,30 @@ class UserModel extends User {
       'address': address != null ? (address as AddressModel).toJson() : null,
     };
   }
+
+  factory UserModel.fromProfile(dynamic profile) {
+    return UserModel(
+      id: profile.id,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      email: profile.email,
+      cpf: profile.cpf,
+      phone: profile.phone,
+      address: profile.address,
+      createdAt: profile.createdAt,
+    );
+  }
+
+  factory UserModel.fromUser(User user) {
+    return UserModel(
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      cpf: user.cpf,
+      phone: user.phone,
+      address: user.address,
+      createdAt: user.createdAt,
+    );
+  }
 }

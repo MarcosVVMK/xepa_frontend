@@ -1,7 +1,7 @@
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import '../../data/datasources/nfc_parser_service.dart';
+import '../../domain/usecases/nfc_usecases.dart';
 import '../../domain/entities/nfc_invoice.dart';
 
 class NfcInvoiceDetailScreen extends StatelessWidget {
@@ -362,8 +362,8 @@ class NfcInvoiceDetailScreen extends StatelessWidget {
     );
 
     try {
-      final parserService = getIt<NfcParserService>();
-      await parserService.saveNfce(invoice);
+      final saveNfce = getIt<SaveNfceUseCase>();
+      await saveNfce(invoice);
       
       if (context.mounted) {
         Navigator.pop(context); 

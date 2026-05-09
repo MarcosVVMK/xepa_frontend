@@ -29,6 +29,7 @@ class ProfileRepositoryImpl implements IProfileRepository {
     required String lastName,
     required String email,
     required String phone,
+    required String cpf,
   }) async {
     try {
       final result = await remoteDataSource.updateProfile(
@@ -36,6 +37,7 @@ class ProfileRepositoryImpl implements IProfileRepository {
         lastName: lastName,
         email: email,
         phone: phone,
+        cpf: cpf,
       );
       return Right(result);
     } catch (e, stackTrace) {
@@ -54,6 +56,8 @@ class ProfileRepositoryImpl implements IProfileRepository {
     required String city,
     required String state,
     required String uf,
+    double? latitude,
+    double? longitude,
   }) async {
     try {
       final result = await remoteDataSource.saveAddress(
@@ -65,6 +69,8 @@ class ProfileRepositoryImpl implements IProfileRepository {
         city: city,
         state: state,
         uf: uf,
+        latitude: latitude,
+        longitude: longitude,
       );
       return Right(result);
     } catch (e, stackTrace) {
@@ -80,6 +86,17 @@ class ProfileRepositoryImpl implements IProfileRepository {
       return Right(result);
     } catch (e, stackTrace) {
       dev.log('Erro ao obter endereço', error: e, stackTrace: stackTrace);
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  ResultVoid deleteAccount() async {
+    try {
+      await remoteDataSource.deleteAccount();
+      return const Right(null);
+    } catch (e, stackTrace) {
+      dev.log('Erro ao excluir conta', error: e, stackTrace: stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }

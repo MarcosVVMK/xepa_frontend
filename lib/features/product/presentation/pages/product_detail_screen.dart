@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
-import 'package:xepa_frontend/features/product/data/models/product_model.dart';
+import 'package:xepa_frontend/features/product/domain/usecases/product_usecases.dart';
 import 'package:xepa_frontend/features/product/data/models/product_price_model.dart';
-import 'package:xepa_frontend/features/shopping_list/data/datasources/shopping_list_service.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/shopping_list_usecases.dart';
 import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/supermarket_detail_screen.dart';
 import 'package:xepa_frontend/shared/widgets/price_freshness_badge.dart';
 
+import 'package:xepa_frontend/features/product/domain/entities/product.dart';
+
 class ProductDetailScreen extends StatefulWidget {
-  final ProductModel product;
+  final Product product;
 
   const ProductDetailScreen({super.key, required this.product});
 
@@ -19,8 +20,9 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   List<ProductPrice> _prices = [];
   bool _isLoading = true;
-  final ProductService _productService = getIt<ProductService>();
-  final ShoppingListService _shoppingListService = getIt<ShoppingListService>();
+  final GetProductPricesUseCase _getPricesUseCase = getIt<GetProductPricesUseCase>();
+  final GetShoppingListsUseCase _getListsUseCase = getIt<GetShoppingListsUseCase>();
+  final AddItemToListUseCase _addItemToListUseCase = getIt<AddItemToListUseCase>();
 
   @override
   void initState() {
@@ -32,7 +34,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (widget.product.id == null) return;
     setState(() => _isLoading = true);
     try {
-      final prices = await _productService.getProductPrices(widget.product.id!);
+      final prices = await _getPricesUseCase(widget.product.id!);
       prices.sort((a, b) => a.price.compareTo(b.price));
       setState(() {
         _prices = prices;
@@ -44,7 +46,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _showAddToListDialog() async {
-    final lists = await _shoppingListService.getShoppingLists();
+    final lists = await _getListsUseCase();
     if (!mounted) return;
 
     if (lists.isEmpty) {
@@ -89,7 +91,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       title: Text(list.name),
                       onTap: () async {
                         Navigator.pop(context);
-                        final result = await _shoppingListService.addItemToList(
+                        final result = await _addItemToListUseCase(
                           list.id!,
                           widget.product.id!,
                           1.0,

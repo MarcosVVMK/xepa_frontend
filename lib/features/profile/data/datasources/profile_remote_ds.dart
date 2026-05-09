@@ -10,7 +10,7 @@ class ProfileRemoteDataSource {
 
   Future<ProfileModel> getProfile() async {
     try {
-      final response = await apiClient.dio.get('profile');
+      final response = await apiClient.dio.get('customer/me');
       return ProfileModel.fromJson(response.data);
     } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
@@ -22,15 +22,17 @@ class ProfileRemoteDataSource {
     required String lastName,
     required String email,
     required String phone,
+    required String cpf,
   }) async {
     try {
       final response = await apiClient.dio.put(
-        'profile',
+        'customer',
         data: {
           'first_name': firstName,
           'last_name': lastName,
           'email': email,
           'phone': phone,
+          'cpf': cpf,
         },
       );
       return ProfileModel.fromJson(response.data);
@@ -48,31 +50,45 @@ class ProfileRemoteDataSource {
     required String city,
     required String state,
     required String uf,
+    double? latitude,
+    double? longitude,
   }) async {
     try {
-      final response = await apiClient.dio.put(
-        'profile/address',
+      final response = await apiClient.dio.post(
+        'address',
         data: {
-          'zip_code': zipCode,
+          'zipCode': zipCode,
           'street': street,
           'number': number,
           'complement': complement,
           'neighborhood': neighborhood,
           'city': city,
-          'state': state,
           'uf': uf,
+          'latitude': latitude,
+          'longitude': longitude,
         },
       );
       return AddressModel.fromJson(response.data);
-    } on DioException catch (e, stackTrace) {
+    } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
   }
 
   Future<AddressModel> getAddress() async {
     try {
-      final response = await apiClient.dio.get('profile/address');
-      return AddressModel.fromJson(response.data);
+      final response = await apiClient.dio.get('customer/me');
+      if (response.data['address'] != null) {
+        return AddressModel.fromJson(response.data['address']);
+      }
+      throw Exception('Endereço não encontrado');
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    try {
+      await apiClient.dio.delete('customer/me');
     } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
@@ -84,7 +100,7 @@ class ProfileRemoteDataSource {
   }) async {
     try {
       await apiClient.dio.put(
-        'profile/password',
+        'customer/password',
         data: {
           'current_password': currentPassword,
           'new_password': newPassword,

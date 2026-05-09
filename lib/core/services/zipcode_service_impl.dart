@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
 import 'package:xepa_frontend/core/errors/failure.dart';
 import 'package:xepa_frontend/core/utils/typedef.dart';
-import 'package:xepa_frontend/core/services/zipcode_service.dart';
+import 'package:xepa_frontend/core/services/i_zipcode_service.dart';
 
 class ZipCodeServiceImpl implements IZipCodeService {
   final ApiClient _apiClient;

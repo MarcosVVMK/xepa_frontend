@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import 'package:xepa_frontend/features/shopping_list/data/datasources/shopping_list_service.dart';
-import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_model.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/shopping_list_usecases.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list.dart';
 import 'list_detail_screen.dart';
 
 class ListsScreen extends StatefulWidget {
@@ -13,7 +13,7 @@ class ListsScreen extends StatefulWidget {
 }
 
 class _ListsScreenState extends State<ListsScreen> {
-  List<ShoppingListModel> _lists = [];
+  List<ShoppingList> _lists = [];
   bool _isLoading = true;
 
   @override
@@ -33,8 +33,8 @@ class _ListsScreenState extends State<ListsScreen> {
   Future<void> _loadLists() async {
     setState(() => _isLoading = true);
     try {
-      final service = getIt<ShoppingListService>();
-      final lists = await service.getShoppingLists();
+      final useCase = getIt<GetShoppingListsUseCase>();
+      final lists = await useCase();
       if (mounted) {
         setState(() {
           _lists = lists;
@@ -82,8 +82,8 @@ class _ListsScreenState extends State<ListsScreen> {
                 Navigator.pop(ctx);
                 setState(() => _isLoading = true);
                 try {
-                  final service = getIt<ShoppingListService>();
-                  await service.createShoppingList(controller.text.trim());
+                  final useCase = getIt<CreateShoppingListUseCase>();
+                  await useCase(controller.text.trim());
                   await _loadLists();
                 } catch (e) {
                   setState(() => _isLoading = false);
@@ -228,7 +228,7 @@ class _ListsScreenState extends State<ListsScreen> {
     );
   }
 
-  Widget _buildListCard(ShoppingListModel list) {
+  Widget _buildListCard(ShoppingList list) {
     final String name = list.name;
     final int itemCount = list.itemCount ?? 0;
     final double total = list.total ?? 0;

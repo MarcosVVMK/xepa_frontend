@@ -2,7 +2,7 @@ import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import '../../data/datasources/nfc_parser_service.dart';
+import 'package:xepa_frontend/features/nfc_scanner/domain/usecases/nfc_usecases.dart';
 import 'nfc_invoice_detail_screen.dart';
 
 class QrScannerScreen extends StatefulWidget {
@@ -17,7 +17,8 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   late TabController _tabController;
   final MobileScannerController _scannerController = MobileScannerController();
   final _nfcCodeController = TextEditingController();
-  final NfcParserService _nfcParserService = getIt<NfcParserService>();
+  final ConsultNfceByKeyUseCase _consultUseCase = getIt<ConsultNfceByKeyUseCase>();
+  final ParseNfceUrlUseCase _parseUrlUseCase = getIt<ParseNfceUrlUseCase>();
 
   @override
   void initState() {
@@ -84,7 +85,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
     _showLoadingDialog();
 
     try {
-      final invoice = await _nfcParserService.consultByAccessKey(accessKey);
+      final invoice = await _consultUseCase(accessKey);
       if (mounted) {
         Navigator.pop(context); 
         await Navigator.push(
@@ -151,7 +152,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
     _showLoadingDialog();
 
     try {
-      final invoice = await _nfcParserService.parseUrl(url);
+      final invoice = await _parseUrlUseCase(url);
       if (mounted) {
         Navigator.pop(context);
         await Navigator.push(

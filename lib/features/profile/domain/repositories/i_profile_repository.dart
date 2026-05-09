@@ -10,6 +10,7 @@ abstract class IProfileRepository {
     required String lastName,
     required String email,
     required String phone,
+    required String cpf,
   });
 
   ResultFuture<Address> saveAddress({
@@ -21,9 +22,13 @@ abstract class IProfileRepository {
     required String city,
     required String state,
     required String uf,
+    double? latitude,
+    double? longitude,
   });
 
   ResultFuture<Address> getAddress();
+
+  ResultVoid deleteAccount();
 
   ResultVoid changePassword({
     required String currentPassword,

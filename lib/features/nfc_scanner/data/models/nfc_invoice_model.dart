@@ -33,7 +33,6 @@ class NfcInvoiceItemModel extends NfcInvoiceItem {
     required super.unit,
     required super.unitPrice,
     required super.totalPrice,
-    super.barcode,
   });
 
   Map<String, dynamic> toJson() {
@@ -43,7 +42,6 @@ class NfcInvoiceItemModel extends NfcInvoiceItem {
       'unit': unit,
       'unitPrice': unitPrice,
       'totalPrice': totalPrice,
-      'barcode': barcode,
     };
   }
 }

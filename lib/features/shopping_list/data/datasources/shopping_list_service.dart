@@ -1,101 +1,101 @@
 import 'package:dio/dio.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
+import 'package:xepa_frontend/core/errors/dio_error_handler.dart';
+import 'package:xepa_frontend/features/shopping_list/data/datasources/i_shopping_list_datasource.dart';
 import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_model.dart';
 
-class ShoppingListService {
-  final ApiClient apiClient;
+class ShoppingListRemoteDataSource implements IShoppingListDataSource {
+  final ApiClient _apiClient;
 
-  ShoppingListService(this.apiClient);
+  ShoppingListRemoteDataSource(this._apiClient);
 
+  @override
   Future<List<ShoppingListModel>> getShoppingLists() async {
     try {
-      final response = await apiClient.dio.get('shopping-lists');
-      if (response.statusCode == 200) {
-        final List data = response.data;
-        return data.map((json) => ShoppingListModel.fromJson(json)).toList();
-      }
-      return [];
+      final response = await _apiClient.dio.get('shopping-lists');
+      final List data = response.data as List;
+      return data.map((json) => ShoppingListModel.fromJson(json)).toList();
     } on DioException catch (e) {
-      return [];
+      throw Exception(DioErrorHandler.extractMessage(e));
     }
   }
 
-  Future<ShoppingListModel?> getShoppingListById(int id) async {
+  @override
+  Future<ShoppingListModel> getShoppingListById(int id) async {
     try {
-      final response = await apiClient.dio.get('shopping-lists/$id');
-      if (response.statusCode == 200) {
-        return ShoppingListModel.fromJson(response.data);
-      }
-      return null;
+      final response = await _apiClient.dio.get('shopping-lists/$id');
+      return ShoppingListModel.fromJson(response.data);
     } on DioException catch (e) {
-      return null;
+      throw Exception(DioErrorHandler.extractMessage(e));
     }
   }
 
-  Future<ShoppingListModel?> createShoppingList(String name) async {
+  @override
+  Future<ShoppingListModel> createShoppingList(String name) async {
     try {
-      final response = await apiClient.dio.post(
+      final response = await _apiClient.dio.post(
         'shopping-lists',
-        data: {
-          'name': name,
-          'color': '#2196F3',
-        },
+        data: {'name': name, 'color': '#2196F3'},
       );
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return ShoppingListModel.fromJson(response.data);
-      }
-      return null;
+      return ShoppingListModel.fromJson(response.data);
     } on DioException catch (e) {
-      return null;
+      throw Exception(DioErrorHandler.extractMessage(e));
     }
   }
 
+  @override
   Future<bool> deleteShoppingList(int id) async {
     try {
-      final response = await apiClient.dio.delete('shopping-lists/$id');
+      final response = await _apiClient.dio.delete('shopping-lists/$id');
       return response.statusCode == 200 || response.statusCode == 204;
     } on DioException catch (e) {
-      return false;
+      throw Exception(DioErrorHandler.extractMessage(e));
     }
   }
 
-  Future<ShoppingListItemModel?> addItemToList(int listId, int productId, double quantity, String notes) async {
+  @override
+  Future<ShoppingListItemModel> addItemToList(
+    int listId,
+    int productId,
+    double quantity,
+    String notes,
+  ) async {
     try {
-      final response = await apiClient.dio.post(
+      final response = await _apiClient.dio.post(
         'shopping-lists/$listId/items',
-        data: {
-          'productId': productId,
-          'quantity': quantity,
-          'notes': notes,
-        },
+        data: {'productId': productId, 'quantity': quantity, 'notes': notes},
       );
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return ShoppingListItemModel.fromJson(response.data);
-      }
-      return null;
+      return ShoppingListItemModel.fromJson(response.data);
     } on DioException catch (e) {
-      return null;
+      throw Exception(DioErrorHandler.extractMessage(e));
     }
   }
 
+  @override
   Future<bool> removeItemFromList(int listId, int itemId) async {
     try {
-      final response = await apiClient.dio.delete('shopping-lists/$listId/items/$itemId');
+      final response = await _apiClient.dio.delete(
+        'shopping-lists/$listId/items/$itemId',
+      );
       return response.statusCode == 200 || response.statusCode == 204;
     } on DioException catch (e) {
-      return false;
+      throw Exception(DioErrorHandler.extractMessage(e));
     }
   }
 
-  Future<ShoppingListModel?> updateShoppingList(int id, Map<String, dynamic> updates) async {
+  @override
+  Future<ShoppingListModel> updateShoppingList(
+    int id,
+    Map<String, dynamic> updates,
+  ) async {
     try {
-      final response = await apiClient.dio.patch('shopping-lists/$id', data: updates);
-      if (response.statusCode == 200) {
-        return ShoppingListModel.fromJson(response.data);
-      }
-      return null;
+      final response = await _apiClient.dio.patch(
+        'shopping-lists/$id',
+        data: updates,
+      );
+      return ShoppingListModel.fromJson(response.data);
     } on DioException catch (e) {
-      return null;
+      throw Exception(DioErrorHandler.extractMessage(e));
     }
   }
 }

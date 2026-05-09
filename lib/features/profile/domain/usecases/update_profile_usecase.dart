@@ -12,12 +12,14 @@ class UpdateProfileUseCase {
     required String lastName,
     required String email,
     required String phone,
+    required String cpf,
   }) async {
     return await _repository.updateProfile(
       firstName: firstName,
       lastName: lastName,
       email: email,
       phone: phone,
+      cpf: cpf,
     );
   }
 }

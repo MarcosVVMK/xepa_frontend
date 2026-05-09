@@ -5,12 +5,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/api_client.dart';
 import '../auth/token_storage.dart';
 
+// ── Auth ────────────────────────────────────────────────────────────────────
 import '../../features/auth/data/datasources/auth_remote_ds.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/i_auth_repository.dart';
 import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
 
+// ── Profile ──────────────────────────────────────────────────────────────────
 import '../../features/profile/data/datasources/profile_remote_ds.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/domain/repositories/i_profile_repository.dart';
@@ -18,15 +20,38 @@ import '../../features/profile/domain/usecases/get_profile_usecase.dart';
 import '../../features/profile/domain/usecases/update_profile_usecase.dart';
 import '../../features/profile/domain/usecases/save_address_usecase.dart';
 import '../../features/profile/domain/usecases/change_password_usecase.dart';
-import '../services/geocoding_service.dart';
+import '../../features/profile/domain/usecases/delete_account_usecase.dart';
+import '../services/i_geocoding_service.dart';
 import '../services/geocoding_service_impl.dart';
-import '../services/zipcode_service.dart';
+import '../services/i_zipcode_service.dart';
 import '../services/zipcode_service_impl.dart';
 
-import '../../features/nfc_scanner/data/datasources/nfc_parser_service.dart';
-import '../../features/product/data/datasources/product_service.dart';
+// ── Shopping List ─────────────────────────────────────────────────────────────
+import '../../features/shopping_list/data/datasources/i_shopping_list_datasource.dart';
 import '../../features/shopping_list/data/datasources/shopping_list_service.dart';
+import '../../features/shopping_list/data/repositories/shopping_list_repository_impl.dart';
+import '../../features/shopping_list/domain/repositories/i_shopping_list_repository.dart';
+import '../../features/shopping_list/domain/usecases/shopping_list_usecases.dart';
+
+// ── Product ───────────────────────────────────────────────────────────────────
+import '../../features/product/data/datasources/i_product_datasource.dart';
+import '../../features/product/data/datasources/product_service.dart';
+import '../../features/product/data/repositories/product_repository_impl.dart';
+import '../../features/product/domain/repositories/i_product_repository.dart';
+import '../../features/product/domain/usecases/product_usecases.dart';
+
+// ── Supermarket ───────────────────────────────────────────────────────────────
+import '../../features/supermarket_finder/data/datasources/i_supermarket_datasource.dart';
 import '../../features/supermarket_finder/data/datasources/supermarket_service.dart';
+import '../../features/supermarket_finder/data/repositories/supermarket_repository_impl.dart';
+import '../../features/supermarket_finder/domain/repositories/i_supermarket_repository.dart';
+import '../../features/supermarket_finder/domain/usecases/supermarket_usecases.dart';
+
+// ── NFC Scanner ───────────────────────────────────────────────────────────────
+import '../../features/nfc_scanner/data/datasources/nfc_parser_service.dart';
+import '../../features/nfc_scanner/data/repositories/nfc_repository_impl.dart';
+import '../../features/nfc_scanner/domain/repositories/i_nfc_repository.dart';
+import '../../features/nfc_scanner/domain/usecases/nfc_usecases.dart';
 
 final getIt = GetIt.instance;
 
@@ -41,79 +66,132 @@ class DependencyInjection {
     getIt.registerLazySingleton(() => ApiClient(getIt(), getIt()));
 
     // ------------------------------------------------------------------
-    // 3. FEATURES - AUTH (Exemplo completo de fluxo)
+    // 2. FEATURES — AUTH
     // ------------------------------------------------------------------
-
-    // DataSources
     getIt.registerLazySingleton(() => AuthRemoteDataSource(getIt<ApiClient>()));
-
-    // Repositories
     getIt.registerLazySingleton<IAuthRepository>(
       () => AuthRepositoryImpl(
         getIt<AuthRemoteDataSource>(),
         tokenStorage: getIt<TokenStorage>(),
       ),
     );
-
-    // UseCases
     getIt.registerLazySingleton(() => LoginUseCase(getIt<IAuthRepository>()));
-    getIt.registerLazySingleton(
-      () => RegisterUseCase(getIt<IAuthRepository>()),
-    );
+    getIt.registerLazySingleton(() => RegisterUseCase(getIt<IAuthRepository>()));
 
     // ------------------------------------------------------------------
-    // 4. FEATURES - PROFILE
+    // 3. FEATURES — PROFILE
     // ------------------------------------------------------------------
-
     getIt.registerLazySingleton(
       () => ProfileRemoteDataSource(getIt<ApiClient>()),
     );
-    getIt.registerLazySingleton<IGeocodingService>(
-      () => GeocodingServiceImpl(),
-    );
+    getIt.registerLazySingleton<IGeocodingService>(() => GeocodingServiceImpl());
     getIt.registerLazySingleton<IZipCodeService>(
       () => ZipCodeServiceImpl(getIt<ApiClient>()),
     );
-
     getIt.registerLazySingleton<IProfileRepository>(
       () => ProfileRepositoryImpl(getIt<ProfileRemoteDataSource>()),
     );
-    getIt.registerLazySingleton(
-      () => GetProfileUseCase(getIt<IProfileRepository>()),
+    getIt.registerLazySingleton(() => GetProfileUseCase(getIt<IProfileRepository>()));
+    getIt.registerLazySingleton(() => UpdateProfileUseCase(getIt<IProfileRepository>()));
+    getIt.registerLazySingleton(() => SaveAddressUseCase(getIt<IProfileRepository>()));
+    getIt.registerLazySingleton(() => ChangePasswordUseCase(getIt<IProfileRepository>()));
+    getIt.registerLazySingleton(() => DeleteAccountUseCase(getIt<IProfileRepository>()));
+
+    // ------------------------------------------------------------------
+    // 4. FEATURES — SHOPPING LIST
+    // ------------------------------------------------------------------
+    getIt.registerLazySingleton<IShoppingListDataSource>(
+      () => ShoppingListRemoteDataSource(getIt<ApiClient>()),
+    );
+    getIt.registerLazySingleton<IShoppingListRepository>(
+      () => ShoppingListRepositoryImpl(getIt<IShoppingListDataSource>()),
     );
     getIt.registerLazySingleton(
-      () => UpdateProfileUseCase(getIt<IProfileRepository>()),
+      () => GetShoppingListsUseCase(getIt<IShoppingListRepository>()),
     );
     getIt.registerLazySingleton(
-      () => SaveAddressUseCase(getIt<IProfileRepository>()),
+      () => GetShoppingListByIdUseCase(getIt<IShoppingListRepository>()),
     );
     getIt.registerLazySingleton(
-      () => ChangePasswordUseCase(getIt<IProfileRepository>()),
+      () => CreateShoppingListUseCase(getIt<IShoppingListRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => DeleteShoppingListUseCase(getIt<IShoppingListRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => AddItemToListUseCase(getIt<IShoppingListRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => RemoveItemFromListUseCase(getIt<IShoppingListRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => UpdateShoppingListUseCase(getIt<IShoppingListRepository>()),
     );
 
     // ------------------------------------------------------------------
-    // 5. FEATURES - NFC & SHOPPING LIST
+    // 5. FEATURES — PRODUCT
     // ------------------------------------------------------------------
-
-    // DataSources
-    getIt.registerLazySingleton(() => NfcParserService(getIt<ApiClient>()));
-    getIt.registerLazySingleton(() => ProductService(getIt<ApiClient>()));
-    getIt.registerLazySingleton(() => ShoppingListService(getIt<ApiClient>()));
-    getIt.registerLazySingleton(() => SupermarketService(getIt<ApiClient>()));
-
-    // Repositories
-    // getIt.registerLazySingleton<INfcRepository>(() => NfcRepositoryImpl(getIt()));
-    // getIt.registerLazySingleton<IShoppingRepository>(() => ShoppingRepositoryImpl(getIt()));
-
-    // UseCases
-    // getIt.registerLazySingleton(() => GetNfcHistory(getIt()));
-    // getIt.registerLazySingleton(() => GetShoppingLists(getIt()));
+    getIt.registerLazySingleton<IProductDataSource>(
+      () => ProductRemoteDataSource(getIt<ApiClient>()),
+    );
+    getIt.registerLazySingleton<IProductRepository>(
+      () => ProductRepositoryImpl(getIt<IProductDataSource>()),
+    );
+    getIt.registerLazySingleton(
+      () => GetAllProductsUseCase(getIt<IProductRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => SearchProductsUseCase(getIt<IProductRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => GetCheapestProductsUseCase(getIt<IProductRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => GetClosestProductsUseCase(getIt<IProductRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => GetProductPricesUseCase(getIt<IProductRepository>()),
+    );
 
     // ------------------------------------------------------------------
-    // 6. PRESENTATION (Blocs / Cubits)
+    // 6. FEATURES — SUPERMARKET FINDER
     // ------------------------------------------------------------------
-    // We use registerFactory so that each screen has its own fresh instance
-    // getIt.registerFactory(() => AuthBloc(getIt<LoginUseCase>()));
-    // getIt.registerFactory(() => NfcBloc(getIt<GetNfcHistory>()));
+    getIt.registerLazySingleton<ISupermarketDataSource>(
+      () => SupermarketRemoteDataSource(getIt<ApiClient>()),
+    );
+    getIt.registerLazySingleton<ISupermarketRepository>(
+      () => SupermarketRepositoryImpl(getIt<ISupermarketDataSource>()),
+    );
+    getIt.registerLazySingleton(
+      () => GetAllSupermarketsUseCase(getIt<ISupermarketRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => GetClosestSupermarketsUseCase(getIt<ISupermarketRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => SearchSupermarketsUseCase(getIt<ISupermarketRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => GetSupermarketProductsUseCase(getIt<ISupermarketRepository>()),
+    );
+
+    // ------------------------------------------------------------------
+    // 7. FEATURES — NFC SCANNER
+    // ------------------------------------------------------------------
+    getIt.registerLazySingleton(
+      () => NfcRemoteDataSource(getIt<ApiClient>()),
+    );
+    getIt.registerLazySingleton<INfcRepository>(
+      () => NfcRepositoryImpl(getIt<NfcRemoteDataSource>()),
+    );
+    getIt.registerLazySingleton(
+      () => SaveNfceUseCase(getIt<INfcRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => ConsultNfceByKeyUseCase(getIt<INfcRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => ParseNfceUrlUseCase(getIt<INfcRepository>()),
+    );
   }
 }

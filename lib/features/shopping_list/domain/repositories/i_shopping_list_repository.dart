@@ -1,0 +1,16 @@
+import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list.dart';
+
+abstract class IShoppingListRepository {
+  Future<List<ShoppingList>> getShoppingLists();
+  Future<ShoppingList> getShoppingListById(int id);
+  Future<ShoppingList> createShoppingList(String name);
+  Future<bool> deleteShoppingList(int id);
+  Future<ShoppingListItem> addItemToList(
+    int listId,
+    int productId,
+    double quantity,
+    String notes,
+  );
+  Future<bool> removeItemFromList(int listId, int itemId);
+  Future<ShoppingList> updateShoppingList(int id, Map<String, dynamic> updates);
+}
