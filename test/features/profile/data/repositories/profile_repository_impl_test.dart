@@ -4,7 +4,9 @@ import 'package:xepa_frontend/core/errors/failure.dart';
 import 'package:xepa_frontend/features/profile/data/datasources/profile_remote_ds.dart';
 import 'package:xepa_frontend/features/profile/data/models/address_model.dart';
 import 'package:xepa_frontend/features/profile/data/models/profile_model.dart';
-import 'package:xepa_frontend/features/profile/data/repositories/profile_repository_impl.dart';class MockProfileRemoteDataSource implements ProfileRemoteDataSource {
+import 'package:xepa_frontend/features/profile/data/repositories/profile_repository_impl.dart';
+
+class MockProfileRemoteDataSource implements ProfileRemoteDataSource {
   ProfileModel? profileToReturn;
   AddressModel? addressToReturn;
   Exception? exceptionToThrow;
@@ -25,6 +27,7 @@ import 'package:xepa_frontend/features/profile/data/repositories/profile_reposit
     required String lastName,
     required String email,
     required String phone,
+    required String cpf,
   }) async {
     if (exceptionToThrow != null) throw exceptionToThrow!;
     return profileToReturn!;
@@ -40,6 +43,8 @@ import 'package:xepa_frontend/features/profile/data/repositories/profile_reposit
     required String city,
     required String state,
     required String uf,
+    double? latitude,
+    double? longitude,
   }) async {
     if (exceptionToThrow != null) throw exceptionToThrow!;
     return addressToReturn!;
@@ -57,6 +62,11 @@ import 'package:xepa_frontend/features/profile/data/repositories/profile_reposit
     required String newPassword,
   }) async {
     changePasswordCalled = true;
+    if (exceptionToThrow != null) throw exceptionToThrow!;
+  }
+
+  @override
+  Future<void> deleteAccount() async {
     if (exceptionToThrow != null) throw exceptionToThrow!;
   }
 }
@@ -90,6 +100,8 @@ void main() {
     mockDataSource.profileToReturn = tProfile;
     mockDataSource.addressToReturn = tAddress;
     repository = ProfileRepositoryImpl(mockDataSource);
+  });
+
   group('getProfile', () {
     test('should return Profile when datasource succeeds', () async {
       final result = await repository.getProfile();
@@ -111,6 +123,8 @@ void main() {
         (_) => fail('Should not succeed'),
       );
     });
+  });
+
   group('updateProfile', () {
     test('should return updated Profile on success', () async {
       final result = await repository.updateProfile(
@@ -118,6 +132,7 @@ void main() {
         lastName: 'Silva',
         email: 'joao@email.com',
         phone: '31999999999',
+        cpf: '12345678900',
       );
 
       expect(result, const Right(tProfile));
@@ -131,10 +146,13 @@ void main() {
         lastName: 'Silva',
         email: 'joao@email.com',
         phone: '31999999999',
+        cpf: '12345678900',
       );
 
       expect(result.isLeft(), true);
     });
+  });
+
   group('saveAddress', () {
     test('should return Address on success', () async {
       final result = await repository.saveAddress(
@@ -165,6 +183,8 @@ void main() {
 
       expect(result.isLeft(), true);
     });
+  });
+
   group('getAddress', () {
     test('should return Address on success', () async {
       final result = await repository.getAddress();
@@ -179,6 +199,8 @@ void main() {
 
       expect(result.isLeft(), true);
     });
+  });
+
   group('changePassword', () {
     test('should return Right(null) on success', () async {
       final result = await repository.changePassword(
@@ -203,6 +225,13 @@ void main() {
         (failure) => expect(failure.message, contains('Wrong password')),
         (_) => fail('Should not succeed'),
       );
+    });
+  });
+
+  group('deleteAccount', () {
+    test('should return Right(null) on success', () async {
+      final result = await repository.deleteAccount();
+      expect(result, const Right(null));
     });
   });
 }

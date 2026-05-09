@@ -10,7 +10,9 @@ import 'package:xepa_frontend/features/profile/domain/usecases/get_profile_useca
 import 'package:xepa_frontend/features/profile/domain/usecases/update_profile_usecase.dart';
 import 'package:xepa_frontend/features/profile/domain/usecases/save_address_usecase.dart';
 import 'package:xepa_frontend/features/profile/domain/usecases/change_password_usecase.dart';
-import 'package:xepa_frontend/core/utils/typedef.dart';class MockProfileRepository implements IProfileRepository {
+import 'package:xepa_frontend/core/utils/typedef.dart';
+
+class MockProfileRepository implements IProfileRepository {
   Profile? profileToReturn;
   Address? addressToReturn;
   Failure? failureToReturn;
@@ -33,12 +35,14 @@ import 'package:xepa_frontend/core/utils/typedef.dart';class MockProfileReposito
     required String lastName,
     required String email,
     required String phone,
+    required String cpf,
   }) async {
     lastUpdateProfileParams = {
       'firstName': firstName,
       'lastName': lastName,
       'email': email,
       'phone': phone,
+      'cpf': cpf,
     };
     if (failureToReturn != null) return Left(failureToReturn!);
     return Right(profileToReturn!);
@@ -54,6 +58,8 @@ import 'package:xepa_frontend/core/utils/typedef.dart';class MockProfileReposito
     required String city,
     required String state,
     required String uf,
+    double? latitude,
+    double? longitude,
   }) async {
     lastSaveAddressParams = {
       'zipCode': zipCode,
@@ -64,6 +70,8 @@ import 'package:xepa_frontend/core/utils/typedef.dart';class MockProfileReposito
       'city': city,
       'state': state,
       'uf': uf,
+      'latitude': latitude,
+      'longitude': longitude,
     };
     if (failureToReturn != null) return Left(failureToReturn!);
     return Right(addressToReturn!);
@@ -86,6 +94,11 @@ import 'package:xepa_frontend/core/utils/typedef.dart';class MockProfileReposito
     };
     changePasswordCalled = true;
     if (failureToReturn != null) return Left(failureToReturn!);
+    return const Right(null);
+  }
+
+  @override
+  ResultVoid deleteAccount() async {
     return const Right(null);
   }
 }
@@ -142,6 +155,8 @@ void main() {
         (_) => fail('Should not return right'),
       );
     });
+  });
+
   group('UpdateProfileUseCase', () {
     test('should call repository with correct parameters', () async {
       final useCase = UpdateProfileUseCase(mockRepository);
@@ -151,6 +166,7 @@ void main() {
         lastName: 'Silva',
         email: 'joao@email.com',
         phone: '31999999999',
+        cpf: '12345678900',
       );
 
       expect(mockRepository.lastUpdateProfileParams, {
@@ -158,6 +174,7 @@ void main() {
         'lastName': 'Silva',
         'email': 'joao@email.com',
         'phone': '31999999999',
+        'cpf': '12345678900',
       });
     });
 
@@ -169,6 +186,7 @@ void main() {
         lastName: 'Silva',
         email: 'joao@email.com',
         phone: '31999999999',
+        cpf: '12345678900',
       );
 
       expect(result, const Right(tProfile));
@@ -184,10 +202,13 @@ void main() {
         lastName: 'Silva',
         email: 'joao@email.com',
         phone: '31999999999',
+        cpf: '12345678900',
       );
 
       expect(result.isLeft(), true);
     });
+  });
+
   group('SaveAddressUseCase', () {
     test('should call repository with correct parameters', () async {
       final useCase = SaveAddressUseCase(mockRepository);
@@ -204,17 +225,12 @@ void main() {
       );
 
       expect(mockRepository.lastSaveAddressParams?['zipCode'], '30130-000');
-      expect(
-          mockRepository.lastSaveAddressParams?['street'], 'Rua da Bahia');
+      expect(mockRepository.lastSaveAddressParams?['street'], 'Rua da Bahia');
       expect(mockRepository.lastSaveAddressParams?['number'], '1234');
-      expect(
-          mockRepository.lastSaveAddressParams?['complement'], 'Apt 101');
-      expect(
-          mockRepository.lastSaveAddressParams?['neighborhood'], 'Centro');
-      expect(mockRepository.lastSaveAddressParams?['city'],
-          'Belo Horizonte');
-      expect(mockRepository.lastSaveAddressParams?['state'],
-          'Minas Gerais');
+      expect(mockRepository.lastSaveAddressParams?['complement'], 'Apt 101');
+      expect(mockRepository.lastSaveAddressParams?['neighborhood'], 'Centro');
+      expect(mockRepository.lastSaveAddressParams?['city'], 'Belo Horizonte');
+      expect(mockRepository.lastSaveAddressParams?['state'], 'Minas Gerais');
       expect(mockRepository.lastSaveAddressParams?['uf'], 'MG');
     });
 
@@ -251,6 +267,8 @@ void main() {
 
       expect(result.isLeft(), true);
     });
+  });
+
   group('ChangePasswordUseCase', () {
     test('should call repository with correct parameters', () async {
       final useCase = ChangePasswordUseCase(mockRepository);

@@ -21,6 +21,7 @@ class NfcRemoteDataSource implements INfcDataSource {
       'address': invoice.address?.toJson(),
       'items': invoice.items
           .map((item) => {
+                'barcode': item.barcode,
                 'name': item.name,
                 'quantity': item.quantity,
                 'unit': item.unit,

@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../api/api_client.dart';
 import '../auth/token_storage.dart';
+import '../utils/navigation_service.dart';
 
 // ── Auth ────────────────────────────────────────────────────────────────────
 import '../../features/auth/data/datasources/auth_remote_ds.dart';
@@ -62,8 +63,9 @@ class DependencyInjection {
     // ------------------------------------------------------------------
     getIt.registerLazySingleton(() => const FlutterSecureStorage());
     getIt.registerLazySingleton(() => Dio());
+    getIt.registerLazySingleton(() => NavigationService());
     getIt.registerLazySingleton(() => TokenStorage(getIt()));
-    getIt.registerLazySingleton(() => ApiClient(getIt(), getIt()));
+    getIt.registerLazySingleton(() => ApiClient(getIt(), getIt(), getIt()));
 
     // ------------------------------------------------------------------
     // 2. FEATURES — AUTH

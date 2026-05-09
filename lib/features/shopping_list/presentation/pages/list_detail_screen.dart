@@ -593,7 +593,7 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                           leading: const Icon(Icons.shopping_bag_outlined),
                           title: Text(p.name),
                           subtitle: Text(
-                            '${p.brand ?? ''} • ${p.unitMeasure ?? ''}',
+                            '${p.brand ?? ''}${p.brand != null && p.barcode != null ? ' • ' : ''}${p.barcode != null ? 'EAN: ${p.barcode}' : ''}${p.unitMeasure != null ? ' • ${p.unitMeasure}' : ''}',
                           ),
                           onTap: () {
                             Navigator.push(

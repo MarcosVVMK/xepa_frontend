@@ -202,6 +202,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ],
                   const SizedBox(height: 20),
+                  if (widget.product.barcode != null &&
+                      widget.product.barcode!.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.qr_code_scanner_rounded,
+                            size: 16, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        Text(
+                          'EAN: ${widget.product.barcode}',
+                          style:
+                              TextStyle(color: Colors.grey[500], fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   SizedBox(
                     width: double.infinity,
                     height: 54,

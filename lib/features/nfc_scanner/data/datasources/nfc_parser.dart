@@ -40,10 +40,31 @@ class NfcParser {
         if (city != null && city.contains('-')) {
           city = city.split('-').last.trim();
         }
+
+        String? street = parts.isNotEmpty ? parts[0] : null;
+        String? number;
+        String? complement;
+
+        if (parts.length > 1) {
+          final numberParts =
+              parts[1].split(' ').where((s) => s.isNotEmpty).toList();
+          if (numberParts.isNotEmpty) {
+            number = numberParts[0];
+            if (numberParts.length > 1) {
+              complement = numberParts.sublist(1).join(' ');
+            }
+          }
+        }
+
+        if (parts.length > 2 && parts[2] != '.') {
+          complement =
+              complement != null ? '$complement, ${parts[2]}' : parts[2];
+        }
+
         address = NfcInvoiceAddress(
-          street: parts.isNotEmpty ? parts[0] : null,
-          number: parts.length > 1 ? parts[1] : null,
-          complement: parts.length > 2 && parts[2] != '.' ? parts[2] : null,
+          street: street,
+          number: number,
+          complement: complement,
           neighborhood: issuer['bairro'] as String?,
           city: city,
           uf: issuer['uf'] as String?,
@@ -87,6 +108,8 @@ class NfcParser {
 
       
         return NfcInvoiceItem(
+          barcode: (d['codigo'] ?? d['gtin'] ?? d['ean'] ?? d['codigo_barra'])
+              ?.toString(),
           name: (d['nome'] ?? d['descricao'] ?? 'Produto') as String,
           quantity: qty,
           unit: (d['unidade'] ?? d['unidade_comercial'] ?? 'UN') as String,

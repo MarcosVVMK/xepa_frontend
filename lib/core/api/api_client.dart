@@ -2,12 +2,15 @@ import 'dart:developer' as dev;
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:xepa_frontend/core/auth/token_storage.dart';
+import 'package:xepa_frontend/core/utils/navigation_service.dart';
+import 'package:xepa_frontend/features/auth/presentation/pages/login_screen.dart';
 
 class ApiClient {
   final Dio dio;
   final TokenStorage tokenStorage;
+  final NavigationService navigationService;
 
-  ApiClient(this.dio, this.tokenStorage) {
+  ApiClient(this.dio, this.tokenStorage, this.navigationService) {
     String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
     if (!baseUrl.endsWith('/')) {
       baseUrl += '/';
@@ -28,7 +31,12 @@ class ApiClient {
         onResponse: (response, handler) {
           return handler.next(response);
         },
-        onError: (e, handler) {
+        onError: (e, handler) async {
+          if (e.response?.statusCode == 401) {
+            dev.log('Token expirado ou inválido (401). Realizando logout...');
+            await tokenStorage.clearAll();
+            navigationService.navigateToAndRemoveUntil(const LoginScreen());
+          }
           return handler.next(e);
         },
       ),

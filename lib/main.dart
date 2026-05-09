@@ -6,6 +6,8 @@ import 'features/auth/presentation/pages/login_screen.dart';
 import 'features/auth/data/datasources/auth_remote_ds.dart';
 import 'features/dashboard/presentation/pages/dashboard_screen.dart';
 
+import 'core/utils/navigation_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -20,6 +22,7 @@ class Xepa extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: getIt<NavigationService>().navigatorKey,
       title: 'Xepa',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF42A5F5)),

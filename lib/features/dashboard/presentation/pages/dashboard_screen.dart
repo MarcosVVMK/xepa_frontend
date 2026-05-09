@@ -8,11 +8,11 @@ import 'package:xepa_frontend/features/shopping_list/presentation/pages/lists_sc
 import 'package:xepa_frontend/features/nfc_scanner/presentation/pages/qr_scanner_screen.dart';
 import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/explore_screen.dart';
 import 'package:xepa_frontend/features/profile/presentation/pages/profile_screen.dart';
-import 'package:xepa_frontend/features/product/data/datasources/product_service.dart';
-import 'package:xepa_frontend/features/product/data/models/product_model.dart';
+import 'package:xepa_frontend/features/product/domain/usecases/product_usecases.dart';
+import 'package:xepa_frontend/features/product/domain/entities/product.dart';
 import 'package:xepa_frontend/features/product/data/models/product_price_model.dart';
-import 'package:xepa_frontend/features/supermarket_finder/data/datasources/supermarket_service.dart';
-import 'package:xepa_frontend/features/supermarket_finder/data/models/supermarket_model.dart';
+import 'package:xepa_frontend/features/supermarket_finder/domain/usecases/supermarket_usecases.dart';
+import 'package:xepa_frontend/features/supermarket_finder/domain/entities/supermarket.dart';
 import 'package:xepa_frontend/shared/utils/price_freshness_utils.dart';
 import 'package:xepa_frontend/shared/widgets/price_freshness_badge.dart';
 
@@ -34,7 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoadingProducts = true;
   List<ProductPrice> _closestProducts = [];
   bool _isLoadingClosestProducts = true;
-  List<SupermarketModel> _closestSupermarkets = [];
+  List<Supermarket> _closestSupermarkets = [];
   bool _isLoadingSupermarkets = true;
 
   @override
@@ -48,15 +48,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadClosestSupermarkets() async {
     try {
-      final supermarketService = getIt<SupermarketService>();
-      final supermarkets = await supermarketService.getClosestSupermarkets();
+      final useCase = getIt<GetClosestSupermarketsUseCase>();
+      final supermarkets = await useCase();
       if (mounted) {
         setState(() {
           _closestSupermarkets = supermarkets;
           _isLoadingSupermarkets = false;
         });
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       if (mounted) {
         setState(() {
           _isLoadingSupermarkets = false;
@@ -67,15 +67,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadClosestProducts() async {
     try {
-      final productService = getIt<ProductService>();
-      final products = await productService.getClosestProducts();
+      final useCase = getIt<GetClosestProductsUseCase>();
+      final products = await useCase();
       if (mounted) {
         setState(() {
           _closestProducts = products;
           _isLoadingClosestProducts = false;
         });
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       if (mounted) {
         setState(() {
           _isLoadingClosestProducts = false;
@@ -86,15 +86,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadCheapestProducts() async {
     try {
-      final productService = getIt<ProductService>();
-      final products = await productService.getCheapestProducts();
+      final useCase = getIt<GetCheapestProductsUseCase>();
+      final products = await useCase();
       if (mounted) {
         setState(() {
           _cheapestProducts = products;
           _isLoadingProducts = false;
         });
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       if (mounted) {
         setState(() {
           _isLoadingProducts = false;
@@ -115,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } else if (mounted) {
         setState(() => _isLoading = false);
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -313,7 +313,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStoryItem(SupermarketModel market) {
+  Widget _buildStoryItem(Supermarket market) {
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -358,7 +358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildProductCard(ProductModel product, SupermarketModel supermarket, double price, DateTime? priceUpdatedAt) {
+  Widget _buildProductCard(Product product, Supermarket supermarket, double price, DateTime? priceUpdatedAt) {
     final freshnessColor = getPriceFreshnessColor(priceUpdatedAt);
     return InkWell(
       onTap: () {
