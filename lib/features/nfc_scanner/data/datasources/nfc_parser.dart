@@ -107,9 +107,15 @@ class NfcParser {
             : (qty > 0 ? tPrice / qty : tPrice);
 
       
+        final barcode = _firstNonEmpty([
+          d['gtin'],
+          d['ean'],
+          d['codigo'],
+          d['codigo_barra'],
+        ])?.toString();
+
         return NfcInvoiceItem(
-          barcode: (d['codigo'] ?? d['gtin'] ?? d['ean'] ?? d['codigo_barra'])
-              ?.toString(),
+          barcode: barcode,
           name: (d['nome'] ?? d['descricao'] ?? 'Produto') as String,
           quantity: qty,
           unit: (d['unidade'] ?? d['unidade_comercial'] ?? 'UN') as String,
