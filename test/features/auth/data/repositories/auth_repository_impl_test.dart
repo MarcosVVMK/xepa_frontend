@@ -3,19 +3,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:xepa_frontend/core/errors/failure.dart';
 import 'package:xepa_frontend/features/auth/data/datasources/auth_remote_ds.dart';
 import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
+import 'package:xepa_frontend/features/auth/data/models/auth_response_model.dart';
 import 'package:xepa_frontend/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:xepa_frontend/core/auth/token_storage.dart';class MockAuthRemoteDataSource implements AuthRemoteDataSource {
-  Map<String, dynamic>? resultToReturn;
+import 'package:xepa_frontend/core/auth/token_storage.dart';
+
+class MockAuthRemoteDataSource implements AuthRemoteDataSource {
+  AuthResponseModel? resultToReturn;
   Exception? exceptionToThrow;
 
   @override
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<AuthResponseModel> login(String email, String password) async {
     if (exceptionToThrow != null) throw exceptionToThrow!;
     return resultToReturn!;
   }
 
   @override
-  Future<Map<String, dynamic>> register({
+  Future<AuthResponseModel> register({
     required String firstName,
     required String lastName,
     required String cpf,
@@ -26,6 +29,9 @@ import 'package:xepa_frontend/core/auth/token_storage.dart';class MockAuthRemote
     if (exceptionToThrow != null) throw exceptionToThrow!;
     return resultToReturn!;
   }
+
+  @override
+  Future<bool> verifyToken() async => true;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -82,10 +88,10 @@ void main() {
   setUp(() {
     mockDataSource = MockAuthRemoteDataSource();
     mockTokenStorage = MockTokenStorage();
-    mockDataSource.resultToReturn = {
-      'token': 'test-jwt-token',
-      'user': tUser,
-    };
+    mockDataSource.resultToReturn = AuthResponseModel(
+      token: 'test-jwt-token',
+      user: tUser,
+    );
     repository = AuthRepositoryImpl(
       mockDataSource,
       tokenStorage: mockTokenStorage,
@@ -112,10 +118,10 @@ void main() {
     });
 
     test('should handle null token gracefully', () async {
-      mockDataSource.resultToReturn = {
-        'token': null,
-        'user': tUser,
-      };
+      mockDataSource.resultToReturn = AuthResponseModel(
+        token: null,
+        user: tUser,
+      );
 
       final result = await repository.login(
         email: 'joao@email.com',
@@ -175,6 +181,8 @@ void main() {
 
       expect(result.isLeft(), true);
     });
+  });
+
   group('getCurrentUser', () {
     test('should return user from storage', () async {
       mockTokenStorage.storedUser =
@@ -200,6 +208,8 @@ void main() {
         (user) => expect(user, isNull),
       );
     });
+  });
+
   group('logout', () {
     test('should delete token and user', () async {
       mockTokenStorage.storedToken = 'some-token';

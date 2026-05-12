@@ -6,7 +6,9 @@ import 'package:xepa_frontend/features/auth/data/models/user_model.dart';
 import 'package:xepa_frontend/features/auth/domain/entities/user.dart';
 import 'package:xepa_frontend/features/auth/domain/repositories/i_auth_repository.dart';
 import 'package:xepa_frontend/features/auth/domain/usecases/login_usecase.dart';
-import 'package:xepa_frontend/features/auth/domain/usecases/register_usecase.dart';class MockAuthRepository implements IAuthRepository {
+import 'package:xepa_frontend/features/auth/domain/usecases/register_usecase.dart';
+
+class MockAuthRepository implements IAuthRepository {
   User? userToReturn;
   Failure? failureToReturn;
 
@@ -109,6 +111,8 @@ void main() {
         (_) => fail('Should not return right'),
       );
     });
+  });
+
   group('RegisterUseCase', () {
     test('should call repository register with all parameters', () async {
       final useCase = RegisterUseCase(mockRepository);
@@ -165,6 +169,8 @@ void main() {
         (_) => fail('Should not return right'),
       );
     });
+  });
+
   group('getCurrentUser (via repository)', () {
     test('should return user when stored', () async {
       final result = await mockRepository.getCurrentUser();
@@ -186,6 +192,8 @@ void main() {
       final result = await mockRepository.getCurrentUser();
       expect(result.isLeft(), true);
     });
+  });
+
   group('logout (via repository)', () {
     test('should call logout successfully', () async {
       final result = await mockRepository.logout();

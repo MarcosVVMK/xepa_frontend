@@ -117,6 +117,8 @@ void main() {
       );
       expect(tag.formattedDate, '03/01/2026');
     });
+  });
+
   group('NfcCodeValidator', () {
     group('isValidCode', () {
       test('should return true for valid NFC code format', () {

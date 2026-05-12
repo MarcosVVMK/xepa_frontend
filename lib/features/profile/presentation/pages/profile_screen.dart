@@ -805,7 +805,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           data['neighborhood'] ?? '';
                                       _cityController.text = data['city'] ?? '';
                                       _stateController.text =
-                                          data['state'] ?? '';
+                                          data['uf'] ?? '';
                                     });
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
