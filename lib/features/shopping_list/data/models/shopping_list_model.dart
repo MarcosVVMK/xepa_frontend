@@ -46,6 +46,7 @@ class ShoppingListModel extends ShoppingList {
       'itemCount': itemCount,
       'total': total,
       'shoppingListStatus': status?.name,
+      'shoppingListItems': items?.map((i) => (i as ShoppingListItemModel).toJson()).toList(),
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
