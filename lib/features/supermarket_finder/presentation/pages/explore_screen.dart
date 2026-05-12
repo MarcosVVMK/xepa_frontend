@@ -16,7 +16,8 @@ import 'package:xepa_frontend/features/profile/domain/entities/address.dart';
 
 
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({super.key});
+  final Supermarket? initialSupermarket;
+  const ExploreScreen({super.key, this.initialSupermarket});
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -37,7 +38,14 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadClosestSupermarkets();
+    _loadClosestSupermarkets().then((_) {
+      if (widget.initialSupermarket != null) {
+        final sm = widget.initialSupermarket!;
+        if (sm.address?.latitude != null && sm.address?.longitude != null) {
+          _showOnMap(sm.address!.latitude!, sm.address!.longitude!);
+        }
+      }
+    });
   }
 
   @override

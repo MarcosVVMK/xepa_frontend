@@ -1,5 +1,7 @@
+import 'package:xepa_frontend/features/shopping_list/domain/entities/comparison_result.dart';
 import 'package:xepa_frontend/features/shopping_list/data/datasources/i_shopping_list_datasource.dart';
 import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list_item.dart';
 import 'package:xepa_frontend/features/shopping_list/domain/repositories/i_shopping_list_repository.dart';
 
 class ShoppingListRepositoryImpl implements IShoppingListRepository {
@@ -42,4 +44,8 @@ class ShoppingListRepositoryImpl implements IShoppingListRepository {
     Map<String, dynamic> updates,
   ) =>
       _dataSource.updateShoppingList(id, updates);
+
+  @override
+  Future<ComparisonResult> compareShoppingList(int id) =>
+      _dataSource.compareShoppingList(id);
 }

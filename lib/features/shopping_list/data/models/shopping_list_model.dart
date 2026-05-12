@@ -1,5 +1,6 @@
 import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list.dart';
 import 'package:xepa_frontend/features/shopping_list/domain/enums/shopping_list_status.dart';
+import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_item_model.dart';
 
 class ShoppingListModel extends ShoppingList {
   const ShoppingListModel({
@@ -47,60 +48,6 @@ class ShoppingListModel extends ShoppingList {
       'shoppingListStatus': status?.name,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
-    };
-  }
-}
-
-
-class ShoppingListItemModel extends ShoppingListItem {
-  const ShoppingListItemModel({
-    super.id,
-    required super.productId,
-    required super.quantity,
-    super.shoppingListId,
-    super.productName,
-    super.unitMeasure,
-    super.notes,
-    super.price,
-    super.imageUrl,
-    super.lastPriceUpdate,
-    super.isPriceReliable,
-    super.originSupermarket,
-  });
-
-  factory ShoppingListItemModel.fromJson(Map<String, dynamic> json) {
-    return ShoppingListItemModel(
-      id: json['id'],
-      productId: json['productId'],
-      quantity: (json['quantity'] as num).toDouble(),
-      shoppingListId: json['shoppingListId'],
-      productName: json['productName'],
-      unitMeasure: json['unitMeasure'],
-      notes: json['notes'],
-      price: (json['price'] as num?)?.toDouble(),
-      imageUrl: json['imageUrl'],
-      lastPriceUpdate: json['lastPriceUpdate'] != null
-          ? DateTime.parse(json['lastPriceUpdate'])
-          : null,
-      isPriceReliable: json['isPriceReliable'],
-      originSupermarket: json['originSupermarket'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'productId': productId,
-      'quantity': quantity,
-      'shoppingListId': shoppingListId,
-      'productName': productName,
-      'unitMeasure': unitMeasure,
-      'notes': notes,
-      'price': price,
-      'imageUrl': imageUrl,
-      'lastPriceUpdate': lastPriceUpdate?.toIso8601String(),
-      'isPriceReliable': isPriceReliable,
-      'originSupermarket': originSupermarket,
     };
   }
 }

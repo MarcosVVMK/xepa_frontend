@@ -32,7 +32,14 @@ import '../../features/shopping_list/data/datasources/i_shopping_list_datasource
 import '../../features/shopping_list/data/datasources/shopping_list_service.dart';
 import '../../features/shopping_list/data/repositories/shopping_list_repository_impl.dart';
 import '../../features/shopping_list/domain/repositories/i_shopping_list_repository.dart';
-import '../../features/shopping_list/domain/usecases/shopping_list_usecases.dart';
+import '../../features/shopping_list/domain/usecases/get_shopping_lists_usecase.dart';
+import '../../features/shopping_list/domain/usecases/get_shopping_list_by_id_usecase.dart';
+import '../../features/shopping_list/domain/usecases/create_shopping_list_usecase.dart';
+import '../../features/shopping_list/domain/usecases/delete_shopping_list_usecase.dart';
+import '../../features/shopping_list/domain/usecases/add_item_to_list_usecase.dart';
+import '../../features/shopping_list/domain/usecases/remove_item_from_list_usecase.dart';
+import '../../features/shopping_list/domain/usecases/update_shopping_list_usecase.dart';
+import '../../features/shopping_list/domain/usecases/compare_shopping_list_usecase.dart';
 
 // ── Product ───────────────────────────────────────────────────────────────────
 import '../../features/product/data/datasources/i_product_datasource.dart';
@@ -128,6 +135,9 @@ class DependencyInjection {
     );
     getIt.registerLazySingleton(
       () => UpdateShoppingListUseCase(getIt<IShoppingListRepository>()),
+    );
+    getIt.registerLazySingleton(
+      () => CompareShoppingListUseCase(getIt<IShoppingListRepository>()),
     );
 
     // ------------------------------------------------------------------

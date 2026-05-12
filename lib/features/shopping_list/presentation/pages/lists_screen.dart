@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import 'package:xepa_frontend/features/shopping_list/domain/usecases/shopping_list_usecases.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/get_shopping_lists_usecase.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/create_shopping_list_usecase.dart';
 import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list.dart';
 import 'list_detail_screen.dart';
 

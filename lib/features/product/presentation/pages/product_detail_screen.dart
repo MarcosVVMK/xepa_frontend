@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
 import 'package:xepa_frontend/features/product/domain/usecases/product_usecases.dart';
 import 'package:xepa_frontend/features/product/data/models/product_price_model.dart';
-import 'package:xepa_frontend/features/shopping_list/domain/usecases/shopping_list_usecases.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/get_shopping_lists_usecase.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/add_item_to_list_usecase.dart';
 import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/supermarket_detail_screen.dart';
 import 'package:xepa_frontend/shared/widgets/price_freshness_badge.dart';
 

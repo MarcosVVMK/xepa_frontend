@@ -1,8 +1,11 @@
+import 'dart:developer' as dev;
 import 'package:dio/dio.dart';
 import 'package:xepa_frontend/core/api/api_client.dart';
 import 'package:xepa_frontend/core/errors/dio_error_handler.dart';
 import 'package:xepa_frontend/features/shopping_list/data/datasources/i_shopping_list_datasource.dart';
+import 'package:xepa_frontend/features/shopping_list/data/models/comparison_result_model.dart';
 import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_model.dart';
+import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_item_model.dart';
 
 class ShoppingListRemoteDataSource implements IShoppingListDataSource {
   final ApiClient _apiClient;
@@ -96,6 +99,21 @@ class ShoppingListRemoteDataSource implements IShoppingListDataSource {
       return ShoppingListModel.fromJson(response.data);
     } on DioException catch (e) {
       throw Exception(DioErrorHandler.extractMessage(e));
+    }
+  }
+
+  @override
+  Future<ComparisonResultModel> compareShoppingList(int id) async {
+    try {
+      final response = await _apiClient.dio.get('shopping-lists/$id/compare');
+      dev.log('Comparison API Response: ${response.data}');
+      return ComparisonResultModel.fromJson(response.data);
+    } on DioException catch (e) {
+      dev.log('Comparison API Error: ${e.response?.data}');
+      throw Exception(DioErrorHandler.extractMessage(e));
+    } catch (e, stackTrace) {
+      dev.log('Error parsing comparison result', error: e, stackTrace: stackTrace);
+      rethrow;
     }
   }
 }

@@ -1,4 +1,6 @@
+import 'package:xepa_frontend/features/shopping_list/data/models/comparison_result_model.dart';
 import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_model.dart';
+import 'package:xepa_frontend/features/shopping_list/data/models/shopping_list_item_model.dart';
 
 abstract class IShoppingListDataSource {
   Future<List<ShoppingListModel>> getShoppingLists();
@@ -8,4 +10,5 @@ abstract class IShoppingListDataSource {
   Future<ShoppingListItemModel> addItemToList(int listId, int productId, double quantity, String notes);
   Future<bool> removeItemFromList(int listId, int itemId);
   Future<ShoppingListModel> updateShoppingList(int id, Map<String, dynamic> updates);
+  Future<ComparisonResultModel> compareShoppingList(int id);
 }

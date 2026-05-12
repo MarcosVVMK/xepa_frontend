@@ -2,12 +2,20 @@ import 'dart:developer' as dev;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xepa_frontend/core/DI/dependency_injection.dart';
-import 'package:xepa_frontend/features/shopping_list/domain/usecases/shopping_list_usecases.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/get_shopping_list_by_id_usecase.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/update_shopping_list_usecase.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/delete_shopping_list_usecase.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/add_item_to_list_usecase.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/remove_item_from_list_usecase.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/usecases/compare_shopping_list_usecase.dart';
 import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/entities/shopping_list_item.dart';
+import 'package:xepa_frontend/features/shopping_list/domain/entities/comparison_result.dart';
 
 import 'package:xepa_frontend/features/product/domain/usecases/product_usecases.dart';
 import 'package:xepa_frontend/features/product/domain/entities/product.dart';
 import 'package:xepa_frontend/features/product/presentation/pages/product_detail_screen.dart';
+import 'package:xepa_frontend/features/supermarket_finder/presentation/pages/explore_screen.dart';
 
 class ListDetailScreen extends StatefulWidget {
   final String listName;
@@ -140,6 +148,38 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
       ),
       builder: (ctx) => _AddProductSheet(listId: widget.listId),
     ).then((_) => _loadList());
+  }
+
+  Future<void> _calculateCheapest() async {
+    setState(() => _isLoading = true);
+    try {
+      final useCase = getIt<CompareShoppingListUseCase>();
+      final result = await useCase(widget.listId);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showComparisonResult(result);
+      }
+    } catch (e, stackTrace) {
+      dev.log('Erro ao calcular lista', error: e, stackTrace: stackTrace);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao calcular: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  void _showComparisonResult(ComparisonResult result) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _ComparisonResultSheet(result: result),
+    );
   }
 
   @override
@@ -283,27 +323,52 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
           ),
         ),
       ),
-      // Add product button
+      // Buttons
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: _showAddProductSheet,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 50,
+                child: OutlinedButton(
+                  onPressed: _calculateCheapest,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF2196F3)),
+                    foregroundColor: const Color(0xFF2196F3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Calcular lista',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
               ),
             ),
-            child: const Text(
-              'Adicionar produto',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _showAddProductSheet,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2196F3),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Adicionar produto',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -687,5 +752,239 @@ class _AddProductSheetState extends State<_AddProductSheet> {
       dev.log('Erro ao adicionar produto à lista', error: e, stackTrace: stackTrace);
       if (mounted) setState(() => _isAdding = false);
     }
+  }
+}
+
+class _ComparisonResultSheet extends StatelessWidget {
+  final ComparisonResult result;
+  const _ComparisonResultSheet({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredComparisons = result.comparisons.where((c) => c.itemsFound > 0 && c.totalValue > 0).toList();
+
+    filteredComparisons.sort((a, b) {
+      int cmp = b.itemsFound.compareTo(a.itemsFound);
+      if (cmp != 0) return cmp;
+      return a.totalValue.compareTo(b.totalValue);
+    });
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Melhores opções',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Comparamos ${result.supermarketsCompared} supermercados',
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+
+          if (filteredComparisons.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.search_off_rounded, size: 48, color: Colors.grey[300]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Nenhum supermercado com itens disponíveis.',
+                      style: TextStyle(color: Colors.grey[500]),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: filteredComparisons.length,
+                itemBuilder: (context, index) {
+                  final comp = filteredComparisons[index];
+                  final isBest = index == 0;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isBest ? const Color(0xFF2196F3) : const Color(0xFFE5E7EB),
+                        width: isBest ? 2 : 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: isBest ? const Color(0xFFE3F2FD) : Colors.grey[100],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.store_rounded,
+                            color: isBest ? const Color(0xFF2196F3) : Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      comp.supermarket.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Color(0xFF1F2937),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (isBest)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2196F3),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: const Text(
+                                        'MELHOR OPÇÃO',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${comp.itemsFound}/${comp.totalItems} itens encontrados',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'R\$ ${comp.totalValue.toStringAsFixed(2).replaceAll('.', ',')}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                                color: isBest ? const Color(0xFF2196F3) : const Color(0xFF1F2937),
+                              ),
+                            ),
+                            if (comp.distanceKm != null)
+                              Text(
+                                '${comp.distanceKm!.toStringAsFixed(1)} km',
+                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 20),
+          if (filteredComparisons.isNotEmpty)
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final bestMatch = filteredComparisons.first;
+                  Navigator.pop(context); // Close bottom sheet
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ExploreScreen(
+                        initialSupermarket: bestMatch.supermarket,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.map_rounded),
+                label: const Text('Mostrar no mapa'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2196F3),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2196F3),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Entendi'),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
